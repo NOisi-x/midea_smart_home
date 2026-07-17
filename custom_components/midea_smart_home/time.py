@@ -65,6 +65,7 @@ class MideaTimeEntity(MideaBaseEntity, TimeEntity):
         self._time_mode = config.get("time_mode", "convert")
         # Check if using single duration field or separate hour/minute fields
         self._use_duration = "duration" in self._target_keys
+        self._local_only = config.get("local_only", False)
 
     @property
     def native_value(self) -> time | None:
@@ -203,7 +204,10 @@ class MideaTimeEntity(MideaBaseEntity, TimeEntity):
                     **command_config
                 }
 
-            await self.coordinator.async_set_control(command)
+            if self._local_only:
+                self.coordinator.device.set_locals(command)
+            else:
+                await self.coordinator.async_set_control(command)
 
         except Exception as e:
             _LOGGER.error("Failed to set time value for entity %s: %s", self._entity_key, str(e))

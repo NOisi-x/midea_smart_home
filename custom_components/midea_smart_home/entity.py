@@ -39,7 +39,7 @@ def iter_midea_device_configs(
         device_type_int = (
             int(device_type, 16) if isinstance(device_type, str) else device_type
         )
-        device_mapping = get_device_mapping(device_type_int, model, sn8, category)
+        device_mapping = getattr(coordinator, "device_mapping", None) or get_device_mapping(device_type_int, model, sn8, category)
         yield coordinator, device_id, device_type, sn, sn8, device_name, model, device_mapping
 
 
@@ -106,6 +106,16 @@ class MideaBaseEntity(CoordinatorEntity[MideaCoordinator]):
         data = self.coordinator.data
         if data is None:
             return False
+
+        # Check mode_dependent: entity only available when
+        # current device mode supports this feature
+        if self._config.get("mode_dependent"):
+            mode_features = getattr(self.coordinator, "mode_features", {})
+            current_mode = data.get("mode", "")
+            if current_mode and mode_features:
+                supported = mode_features.get(current_mode, set())
+                if self._entity_key not in supported:
+                    return False
 
         return self._check_condition(self._condition)
 

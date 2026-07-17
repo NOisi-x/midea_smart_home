@@ -78,6 +78,9 @@ class DeviceLogicHandler:
         elif self.device_type == 0x9C:
             self.adjust_b3_function_control(data)
 
+        elif self.device_type == 0xE1:
+            self._adjust_order_left_time(data)
+
         elif self.device_type == 0xED:
             self.adjust_standby_status_for_wash(data)
             self.adjust_high_float_type_when_filter_on(data)
@@ -201,6 +204,18 @@ class DeviceLogicHandler:
     def _adjust_remain_time(self, data: dict) -> None:
         if "remain_time" in data and "running_status" in data:
             self._adjust_remain_time_by_status(data, "remain_time", data["running_status"])
+
+    def _adjust_order_left_time(self, data: dict) -> None:
+        """T0xE1: combine order_left_hour + min into single DURATION value."""
+        if data.get("work_status") != "order":
+            data["order_left_total"] = 0
+            return
+        try:
+            h = int(data.get("order_left_hour", 0) or 0)
+            m = int(data.get("order_left_min", 0) or 0)
+            data["order_left_total"] = h * 60 + m
+        except (ValueError, TypeError):
+            data["order_left_total"] = 0
 
     def _adjust_db_remain_time(self, data: dict) -> None:
         if "db_remain_time" in data and "db_running_status" in data:

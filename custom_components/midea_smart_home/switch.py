@@ -27,17 +27,21 @@ async def async_setup_entry(
 
         if switch_config:
             for switch_id, config in switch_config.items():
-                translation_key = config.get("translation_key")
                 switch_rationale = config.get("rationale", rationale)
                 condition = config.get("condition")
                 command = config.get("command")
                 include_current = config.get("include_current")
-                entities.append(
-                    MideaSwitchEntity(
-                        coordinator, device_id, device_type, sn, sn8, device_name,
-                        switch_id, translation_key, switch_rationale, condition, command, include_current, model
-                    )
+                local_only = config.get("local_only", False)
+                entity = MideaSwitchEntity(
+                    coordinator, device_id, device_type, sn, sn8, device_name,
+                    switch_id, config, switch_rationale, condition, command, include_current, model, local_only
                 )
+                # ── Cloud name override (mirrors getMoreDryWashName) ──
+                cloud_name = config.get("cloud_name")
+                if cloud_name:
+                    entity._attr_translation_key = None
+                    entity._attr_name = cloud_name
+                entities.append(entity)
 
     async_add_entities(entities)
 
@@ -54,25 +58,35 @@ class MideaSwitchEntity(MideaBaseEntity, SwitchEntity):
         sn8: str,
         device_name: str,
         switch_id: str,
-        translation_key: str = None,
+        switch_config: dict = None,
         rationale: list = None,
         condition: dict = None,
         command: dict = None,
         include_current: list = None,
         model: str = None,
+        local_only: bool = False,
+        # Backward-compatible alias — callers passing translation_key
+        # still work; it is folded into switch_config internally.
+        translation_key: str = None,
     ):
-        config = {"translation_key": translation_key} if translation_key else {}
+        # Merge legacy translation_key into switch_config for backward compat
+        effective_config = dict(switch_config) if switch_config else {}
+        if translation_key and "translation_key" not in effective_config:
+            effective_config["translation_key"] = translation_key
+
         super().__init__(
             coordinator, device_id, device_type, sn, sn8, device_name, switch_id, model,
-            platform_name="switch", config=config, rationale=rationale, condition=condition
+            platform_name="switch", config=effective_config, rationale=rationale, condition=condition
         )
         self._switch_id = switch_id
         self._command = command
         self._include_current = include_current or []
+        self._local_only = local_only
 
     def _get_status_on_off(self, attribute_key: str) -> bool:
         data = self.coordinator.data or {}
-        status = data.get(attribute_key)
+        status_key = self._config.get("status_key", attribute_key)
+        status = data.get(status_key)
         if status is None:
             return False
         try:
@@ -89,23 +103,68 @@ class MideaSwitchEntity(MideaBaseEntity, SwitchEntity):
             )
         return False
 
+    async def _run_validator(self, validator_name: str) -> None:
+        from .device_mapping.T0xE1 import dispatch_validator
+        await dispatch_validator(validator_name, self.coordinator)
+
     @property
     def is_on(self) -> bool:
         return self._get_status_on_off(self._switch_id)
 
     async def _async_set_status_on_off(self, attribute_key: str, turn_on: bool) -> None:
+        # Device-specific validators (raise HomeAssistantError if blocked)
+        validators = self._config.get("validator", [])
+        if isinstance(validators, str):
+            validators = [validators]
+        if turn_on:
+            for v in validators:
+                await self._run_validator(v)
+
         value = self._rationale[int(turn_on)]
         merged_command = {}
-        if isinstance(self._command, dict):
-            merged_command.update(self._command)
-        merged_command[attribute_key] = value
+
+        # An explicit off_command marks a "full-command" switch (e.g. E1 power):
+        # the command dict fully defines the payload and the on/off attribute
+        # value is NOT appended. All other devices keep the original semantics:
+        # command dict acts as extra params, plus attribute_key=value.
+        off_command = self._config.get("off_command")
+        full_command = off_command is not None
+        if full_command:
+            cmd = off_command if not turn_on else self._command
+            if isinstance(cmd, dict):
+                merged_command.update(cmd)
+        else:
+            if isinstance(self._command, dict):
+                merged_command.update(self._command)
+            merged_command[attribute_key] = value
 
         for attr in self._include_current:
             current_value = self._get_nested_value(attr)
             if current_value is not None:
                 merged_command[attr] = current_value
 
-        await self.coordinator.async_set_control(merged_command)
+        if self._local_only:
+            self.coordinator.device.set_locals(merged_command)
+            # ── autoThrow non-whitelist: send immediately to device ──
+            # Mirror mini-program: non-autoThrowWithMode devices send
+            # auto_throw immediately on toggle, not bundled in start command.
+            if self._switch_id == "auto_throw":
+                from .device_mapping.T0xE1 import has_diff
+                diff_data = getattr(self.coordinator, "diff_data", None)
+                sn8 = getattr(self.coordinator, "sn8", "")
+                if not has_diff(diff_data, sn8, "autoThrowWithMode"):
+                    await self.coordinator.async_set_control(
+                        {"auto_throw": int(turn_on)}
+                    )
+        elif full_command:
+            # Full-command switch: send directly via set_attributes to avoid
+            # centralized bundling of unrelated keys (e.g. power_off should
+            # NOT bundle mode/water_level).
+            await self.hass.async_add_executor_job(
+                self.coordinator.device.set_attributes, merged_command
+            )
+        else:
+            await self.coordinator.async_set_control(merged_command)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self._async_set_status_on_off(self._switch_id, True)

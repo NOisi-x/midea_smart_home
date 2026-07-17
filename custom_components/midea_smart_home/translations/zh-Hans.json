@@ -183,18 +183,43 @@
         "name": "龙头出水"
       },
       "smelly_trigger": {
-        "name":  "异味触发状态"
+        "name": "异味触发状态"
       }
     },
     "button": {
+      "cancel": {
+        "name": "取消"
+      },
+      "cancel_order": {
+        "name": "取消预约"
+      },
       "cancel_power_on_off_timer": {
         "name": "取消定时"
       },
       "left_stove_off": {
         "name": "关闭左灶"
       },
+      "pause": {
+        "name": "暂停/继续"
+      },
+
       "right_stove_off": {
         "name": "关闭右灶"
+      },
+      "start_dry": {
+        "name": "单烘干启动"
+      },
+      "start_keep": {
+        "name": "单储存启动"
+      },
+      "start_order": {
+        "name": "预约启动"
+      },
+      "start_wash": {
+        "name": "启动"
+      },
+      "start": {
+        "name": "启动"
       },
       "stop": {
         "name": "停止"
@@ -274,10 +299,10 @@
               "strong": "强劲",
               "storm": "暴风"
             }
-          }			
+          }
         }
       },
-	  "cooling_fan": {
+      "cooling_fan": {
         "name": "温控器(凉霸)",
         "state_attributes": {
           "preset_mode": {
@@ -304,7 +329,7 @@
               "soft_wind": "弱风",
               "strong": "强风"
             }
-          }			
+          }
         }
       },
       "electric_heater": {
@@ -484,8 +509,12 @@
     },
     "number": {
       "air_set_hour": {
-        "name": "抑菌存储时间"
+        "name": "设置保管时间"
       },
+      "dry_set_min": {
+        "name": "设置烘干时间"
+      },
+
       "boiling_water_temperature": {
         "name": "沸水设定温度"
       },
@@ -746,7 +775,7 @@
           "rinsing_dehydration": "漂+脱",
           "self_wash_5": "筒自洁",
           "single_dehytration": "单脱水",
-          "single_drying": "单烘干",
+          "single_drying": "单烘干启动",
           "small_wash_dry": "小件智洗烘",
           "socks": "袜子",
           "standard": "标准",
@@ -1339,7 +1368,7 @@
           "shirt": "衬衫",
           "silk": "丝绸",
           "single_dehytration": "单脱水",
-          "single_drying": "单烘干",
+          "single_drying": "单烘干启动",
           "small_piece_dry": "小件烘",
           "sport_clothes": "运动服",
           "spring_autumn_wash": "春秋洗",
@@ -1622,19 +1651,26 @@
       "wash_mode": {
         "name": "洗涤模式",
         "state": {
+          "auto_wash": "智能洗",
+          "diy": "DIY程序",
+          "dry": "单烘干启动",
           "eco_wash": "节能洗",
           "fast_wash": "快速洗",
           "fruit_wash": "水果洗",
           "germ": "消毒洗",
           "glass_wash": "玻璃洗",
+          "high_temp_wash": "高温洗",
           "hotpot_wash": "火锅洗",
-          "neutral_gear": "待机",
+          "keep": "单储存",
+          "quietnight_wash": "静音洗",
           "seafood_wash": "海鲜洗",
           "self_clean": "自清洁",
-          "single_disinfect": "单消毒",
           "soak_wash": "预冲洗",
           "standard_wash": "标准洗",
-          "strong_wash": "超强洗"
+          "strong_wash": "超强洗",
+          "wash_dry": "洗烘一体",
+          "cloud_wash": "云洗涤",
+          "wahin_wash_dry": "华凌洗烘"
         }
       },
       "water_gear": {
@@ -1652,6 +1688,9 @@
         "name": "水位",
         "state": {
           "auto": "自动",
+          "1": "1档",
+          "2": "2档",
+          "3": "3档",
           "l1": "L1",
           "l2": "L2",
           "l3": "L3",
@@ -1815,6 +1854,48 @@
           "power_on": "开机",
           "resume": "继续"
         }
+      },
+      "operation": {
+        "name": "操作",
+        "state": {
+          "cancel": "取消",
+          "pause": "暂停",
+          "resume": "继续"
+        }
+      },
+      "softwater": {
+        "name": "软水盐档位"
+      },
+      "rinse_aid": {
+        "name": "亮碟剂档位"
+      },
+      "additional_func": {
+        "name": "附加功能",
+        "state": {
+          "off": "无",
+          "half_load": "少量餐具",
+          "extra_rinse_1": "+漂洗1次",
+          "extra_rinse_2": "+漂洗2次",
+          "strong_wash_func": "加强洗涤",
+          "half_rinse_1": "少量餐具+漂洗1次",
+          "half_rinse_2": "少量餐具+漂洗2次",
+          "door_open_dry": "开门速干",
+          "steam": "蒸汽强洗",
+          "speed_up": "加速省时",
+          "无": "无",
+          "少量餐具": "少量餐具",
+          "+漂洗1次": "+漂洗1次",
+          "+漂洗2次": "+漂洗2次",
+          "加强洗涤": "加强洗涤",
+          "少量餐具+漂洗1次": "少量餐具+漂洗1次",
+          "少量餐具+漂洗2次": "少量餐具+漂洗2次",
+          "开门速干": "开门速干",
+          "蒸汽强洗": "蒸汽强洗",
+          "加速省时": "加速省时"
+        }
+      },
+      "work_time": {
+        "name": "消毒时间"
       }
     },
     "sensor": {
@@ -1822,7 +1903,10 @@
         "name": "风干剩余时间"
       },
       "air_left_hour": {
-        "name": "烘干存储剩余时间"
+        "name": "抑菌储存剩余时间"
+      },
+      "order_left_time": {
+        "name": "预约剩余时间"
       },
       "appointment_time": {
         "name": "预约时间"
@@ -2202,6 +2286,18 @@
       "warming_time": {
         "name": "保温时间"
       },
+      "device_status": {
+        "name": "设备状态",
+        "state": {
+          "power_off": "已关机",
+          "standby": "待机中",
+          "order": "预约中",
+          "work": "运行中",
+          "error": "故障中",
+          "keep": "保管中",
+          "dry": "烘干中"
+        }
+      },
       "wash_stage": {
         "name": "洗涤阶段",
         "state": {
@@ -2240,6 +2336,22 @@
       "work_mode": {
         "name": "工作模式"
       },
+      "wash_region": {
+        "name": "分层洗涤",
+        "state": {
+          "all": "全腔",
+          "upper": "上层",
+          "lower": "下层"
+        }
+      },
+      "water_strong": {
+        "name": "强度",
+        "state": {
+          "auto": "自动",
+          "1": "1档",
+          "2": "2档"
+        }
+      },
       "work_status": {
         "name": "工作状态"
       },
@@ -2247,10 +2359,10 @@
         "name": "工作时间"
       },
       "smelly_level": {
-        "name":  "异味水平"
+        "name": "异味水平"
       },
       "smelly_threshold": {
-        "name":  "异味触发阈值"
+        "name": "异味触发阈值"
       }
     },
     "switch": {
@@ -2545,6 +2657,12 @@
       "uvswitch": {
         "name": "UV杀菌"
       },
+      "wash_dry": {
+        "name": "热风烘干"
+      },
+      "wash_keep": {
+        "name": "抑菌储存"
+      },
       "wash": {
         "name": "滤芯冲洗"
       },
@@ -2566,6 +2684,12 @@
       "wind_swing_ud": {
         "name": "上下摆风"
       },
+      "more_dry": {
+        "name": "强烘闪干"
+      },
+      "more_dry_wash": {
+        "name": "加强洗涤"
+      },
       "smelly_enable": {
         "name": "异味感应"
       }
@@ -2576,6 +2700,9 @@
       }
     },
     "time": {
+      "order_set_time": {
+        "name": "预约时间"
+      },
       "power_off_timer": {
         "name": "定时关机"
       },

@@ -36,7 +36,7 @@ from .config_flow import get_lua_custom_path, get_lua_file_path
 from .coordinator import MideaCoordinator
 from .midea_lib.device import MideaDevice
 from .midea_lib.lua import write_file, ensure_lua_files
-from .device_mapping import get_device_mapping
+from .device_mapping import get_device_mapping, load_device_config, load_diff_config, apply_device_config
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -145,6 +145,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         lua_common_dir = str(Path(hass.config.config_dir) / LUA_COMMON_PATH)
 
         device_mapping = get_device_mapping(device_type_int, model, sn8, category)
+
+        # Apply per-device config from cloud download, unless the mapping
+        # variant opts out (e.g. hand-crafted SN8-specific mappings).
+        device_config = None
+        if not device_mapping.get("manual_only"):
+            device_config = load_device_config(
+                hass.config.config_dir, device_type_int, sn8
+            )
+            if device_config:
+                device_mapping = apply_device_config(
+                    device_mapping, device_config, device_type_int, 0
+                )
+                _LOGGER.info(
+                    "Applied device config for sn8=%s, type=0x%X",
+                    sn8, device_type_int
+                )
+
         calculate_config = device_mapping.get("calculate", {})
         centralized = list(device_mapping.get("centralized", []))
         default_values = dict(device_mapping.get("default_values", {}))
@@ -222,6 +239,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 area,
                 config_entry=entry,
             )
+            coordinator.mode_features = device_mapping.get("_mode_features", {})
+            coordinator.device_mapping = device_mapping
+            coordinator.sn8 = sn8
+            coordinator.diff_data = load_diff_config(
+                hass.config.config_dir, device_type_int
+            )
+            # Cache keepStartNow from device config for statusNum computation
+            coordinator.keep_start_now = False
+            if device_config:
+                for version_data in device_config.values():
+                    if isinstance(version_data, dict):
+                        setting = version_data.get("setting", {})
+                        coordinator.keep_start_now = bool(
+                            setting.get("keepStartNow", 0)
+                        )
+                        break
 
             import asyncio
             if initial_query and isinstance(initial_query, list):

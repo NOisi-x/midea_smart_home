@@ -38,11 +38,13 @@ async def async_setup_entry(
                 state_class = config.get("state_class")
                 suggested_display_precision = config.get("suggested_display_precision")
                 options = config.get("options")
+                attribute = config.get("attribute")
+                computed_status = config.get("computed_status", False)
                 entities.append(
                     MideaSensorEntity(
                         coordinator, device_id, device_type, sn, sn8, device_name,
                         sensor_id, name, device_class, unit, translation_key, state_class, model,
-                        suggested_display_precision, options
+                        suggested_display_precision, options, attribute, computed_status
                     )
                 )
 
@@ -82,6 +84,8 @@ class MideaSensorEntity(MideaBaseEntity, SensorEntity):
         model: str = None,
         suggested_display_precision: Optional[int] = None,
         options: Optional[list] = None,
+        attribute: Optional[str] = None,
+        computed_status: bool = False,
     ):
         config = {"translation_key": translation_key} if translation_key else {}
         super().__init__(
@@ -89,6 +93,8 @@ class MideaSensorEntity(MideaBaseEntity, SensorEntity):
             platform_name="sensor", config=config
         )
         self._sensor_id = sensor_id
+        self._attribute = attribute or sensor_id
+        self._computed_status = computed_status
 
         if options is not None:
             self._attr_options = options
@@ -128,12 +134,52 @@ class MideaSensorEntity(MideaBaseEntity, SensorEntity):
             return None
 
         data = self.coordinator.data or {}
-        value = data.get(self._sensor_id)
+
+        # ── computed_status: use statusNum-based text (mirrors pannel.wxml) ──
+        if self._computed_status:
+            from .device_mapping.T0xE1 import get_status_text, get_status_num
+            device_mapping = getattr(self.coordinator, "device_mapping", {})
+            keep_text = device_mapping.get("_keep_text_name", "")
+            dry_text = device_mapping.get("_dry_text_name", "")
+            status_num = get_status_num(
+                data.get("work_status"),
+                airswitch=data.get("airswitch", 0),
+                air_left_hour=data.get("air_left_hour", 0),
+                dryswitch=data.get("dryswitch", 0),
+                keep_start_now=getattr(self.coordinator, "keep_start_now", False),
+            )
+            return get_status_text(status_num, keep_text, dry_text)
+
+        value = data.get(self._attribute)
 
         if value is None or value == "":
             return None
 
         return value
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Return extra attributes for keep/dry time formatting."""
+        attrs = {}
+
+        # keepTimeType=2 → air_set_hour formatted as "X天Y时"
+        if self._sensor_id == "air_set_hour":
+            device_mapping = getattr(self.coordinator, "device_mapping", {})
+            keep_time_type = device_mapping.get("_keep_time_type", 0)
+            if keep_time_type == 2:
+                data = self.coordinator.data or {}
+                try:
+                    hours = int(data.get("air_set_hour", 0))
+                except (ValueError, TypeError):
+                    hours = 0
+                if hours >= 24:
+                    days = hours // 24
+                    rem = hours % 24
+                    attrs["formatted"] = f"{days}天{rem:02d}时"
+                else:
+                    attrs["formatted"] = f"{hours}小时"
+
+        return attrs if attrs else None
 
 
 class MideaLanIPEntity(MideaBaseEntity, SensorEntity):

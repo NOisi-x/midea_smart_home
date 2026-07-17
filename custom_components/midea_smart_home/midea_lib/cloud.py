@@ -630,3 +630,201 @@ async def download_lua_file(hass, access_token: str, sn: str, device_type: int, 
         _LOGGER.error("Lua download exception: %s", e)
 
     return False, ""
+
+async def download_diff_config(
+    access_token: str,
+    device_type: int,
+) -> dict | None:
+    """Download device-specific behavior diff config from cloud.
+
+    Calls getAppModelConfig with sn8="DIFFTYPE" to retrieve the
+    global diffType / otherType / Filter whitelists that control
+    per-model behavioral differences (devOffKeep, turnOffOnKeepStart, etc.)
+
+    Returns:
+        Full diff dict on success, None on failure.
+        The local default from T0xE1.py acts as fallback.
+    """
+    import hashlib
+    import hmac
+
+    iot_key = bytes.fromhex(format(9795516279659324117647275084689641883661667, 'x')).decode()
+    hmac_key = bytes.fromhex(format(117390035944627627450677220413733956185864939010425, 'x')).decode()
+
+    config_data = {
+        "msg": "getAppModelConfig",
+        "params": {
+            "protype": f"{hex(device_type)[2:]}",
+            "sn8": "DIFFTYPE",
+        },
+        "reqId": token_hex(16),
+        "stamp": datetime.now().strftime("%Y%m%d%H%M%S"),
+    }
+
+    json_data = json.dumps(config_data, separators=(',', ':'))
+    random = str(int(time.time()))
+
+    msg = iot_key + json_data + random
+    sign = hmac.new(hmac_key.encode("ascii"), msg.encode("ascii"), hashlib.sha256).hexdigest()
+
+    headers = {
+        "content-type": "application/json; charset=utf-8",
+        "secretVersion": "1",
+        "accesstoken": access_token,
+        "random": random,
+        "sign": sign,
+    }
+
+    api_url = (
+        "https://mp-prod.smartmidea.net/mas/v5/app/proxy"
+        "?alias=/cfhrs/common/v1/api"
+    )
+
+    protype = f"{hex(device_type)[2:]}"
+    _LOGGER.info("Diff config download request: protype=%s sn8=DIFFTYPE", protype)
+
+    try:
+        async with ClientSession() as session:
+            async with session.post(
+                api_url, headers=headers, data=json_data, timeout=30
+            ) as response:
+                result = await response.json(content_type=None)
+
+                ret_code = str(result.get("retCode", result.get("code", "-1")))
+                if ret_code == "0":
+                    data = result.get("data") or result.get("result") or {}
+                    if isinstance(data, str):
+                        data = json.loads(data)
+                    if data:
+                        if "config" in data:
+                            config = data["config"]
+                        elif "result" in data and "config" in data["result"]:
+                            config = data["result"]["config"]
+                        else:
+                            config = data
+
+                        if isinstance(config, str):
+                            config = json.loads(config)
+
+                        if isinstance(config, dict) and config:
+                            _LOGGER.info(
+                                "Diff config downloaded for type=0x%X, keys=%s",
+                                device_type, list(config.keys())
+                            )
+                            return config
+
+                    _LOGGER.warning("Diff config API returned empty data: %s", result)
+                else:
+                    _LOGGER.warning(
+                        "Diff config API failed (retCode=%s): %s",
+                        ret_code, result.get("desc", result)
+                    )
+    except Exception as e:
+        _LOGGER.warning("Diff config download exception: %s", e)
+
+    return None
+
+
+async def download_device_config(
+    access_token: str,
+    sn8: str,
+    device_type: int,
+) -> dict | None:
+    """Download per-model device configuration from cloud.
+
+    Only supported for device types that have dynamic configs
+    (currently 0xE1 dishwasher). Returns the full config JSON
+    which contains version_N blocks with modeList, setting, etc.
+
+    Args:
+        access_token: Cloud access token
+        sn8: Device model code (8 digits)
+        device_type: Device type (e.g., 0xE1)
+
+    Returns:
+        Config dict on success, None on failure
+    """
+    import hashlib
+    import hmac
+
+    iot_key = bytes.fromhex(format(9795516279659324117647275084689641883661667, 'x')).decode()
+    hmac_key = bytes.fromhex(format(117390035944627627450677220413733956185864939010425, 'x')).decode()
+
+    config_data = {
+        "msg": "getAppModelConfig",
+        "params": {
+            "protype": f"{hex(device_type)[2:]}",
+            "sn8": sn8,
+        },
+        "reqId": token_hex(16),
+        "stamp": datetime.now().strftime("%Y%m%d%H%M%S"),
+    }
+
+    json_data = json.dumps(config_data, separators=(',', ':'))
+    random = str(int(time.time()))
+
+    msg = iot_key + json_data + random
+    sign = hmac.new(hmac_key.encode("ascii"), msg.encode("ascii"), hashlib.sha256).hexdigest()
+
+    headers = {
+        "content-type": "application/json; charset=utf-8",
+        "secretVersion": "1",
+        "accesstoken": access_token,
+        "random": random,
+        "sign": sign,
+    }
+
+    api_url = (
+        "https://mp-prod.smartmidea.net/mas/v5/app/proxy"
+        "?alias=/cfhrs/common/v1/api"
+    )
+
+    _LOGGER.info("Device config download request: protype=%s sn8=%s", config_data["params"]["protype"], sn8)
+
+    try:
+        async with ClientSession() as session:
+            async with session.post(
+                api_url, headers=headers, data=json_data, timeout=30
+            ) as response:
+                result = await response.json(content_type=None)
+                _LOGGER.debug("Device config download response: %s", result)
+
+                # Handle both retCode (cfhrs proxy) and code (direct alias) formats
+                ret_code = str(result.get("retCode", result.get("code", "-1")))
+                if ret_code == "0":
+                    # Data can be in "data" or "result" key depending on API proxy
+                    data = result.get("data") or result.get("result") or {}
+                    if isinstance(data, str):
+                        data = json.loads(data)
+                    if data:
+                        # Config may be nested under various keys
+                        if "config" in data:
+                            config = data["config"]
+                        elif "result" in data and "config" in data["result"]:
+                            config = data["result"]["config"]
+                        else:
+                            config = data
+
+                        if isinstance(config, str):
+                            config = json.loads(config)
+
+                        if isinstance(config, dict) and config:
+                            _LOGGER.info(
+                                "Device config downloaded for sn8=%s, versions=%s",
+                                sn8, list(config.keys())
+                            )
+                            return config
+
+                    _LOGGER.warning(
+                        "Device config API returned empty data for sn8=%s: %s",
+                        sn8, result
+                    )
+                else:
+                    _LOGGER.warning(
+                        "Device config API failed for sn8=%s (retCode=%s): %s",
+                        sn8, ret_code, result.get("desc", result)
+                    )
+    except Exception as e:
+        _LOGGER.warning("Device config download exception for sn8=%s: %s", sn8, e)
+
+    return None

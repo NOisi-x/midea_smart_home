@@ -10,6 +10,12 @@ JSON_FILES_PATH = f".storage/{DOMAIN}/json_files"
 LUA_DEVICE_PATH = f".storage/{DOMAIN}/lua_devices"
 LUA_COMMON_PATH = f".storage/{DOMAIN}/lua_common"
 LUA_CUSTOM_PATH = "lua"
+DEVICE_CONFIG_PATH = f".storage/{DOMAIN}/device_configs"
+
+# Device types that support per-model cloud config download.
+# Extend this set to enable auto-adaptation for new device categories.
+# Each type also needs an entry in device_mapping.DEVICE_CONFIG_FEATURE_MAPS.
+DEVICE_CONFIG_SUPPORTED_TYPES = {0xE1}
 
 CONF_ACCOUNT = "account"
 CONF_PASSWORD = "password"

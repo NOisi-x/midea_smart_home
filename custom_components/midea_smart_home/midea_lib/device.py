@@ -447,6 +447,7 @@ class MideaDevice:
         )
 
         self._data = {}
+        self._local_data: dict = {}  # Values set by local_only entities, survives device updates
         self._available = False
         self._last_available_time: float = 0.0
         self._pending_unavailable = False
@@ -489,7 +490,21 @@ class MideaDevice:
 
     @property
     def data(self):
+        if self._local_data:
+            result = dict(self._data)
+            result.update(self._local_data)
+            return result
         return self._data
+
+    def set_local(self, key: str, value: Any) -> None:
+        """Set a value that survives device status updates (local_only mode)."""
+        self._local_data[key] = value
+        self._notify_update()
+
+    def set_locals(self, values: dict) -> None:
+        """Set multiple values that survive device status updates."""
+        self._local_data.update(values)
+        self._notify_update()
 
     @property
     def controller(self):

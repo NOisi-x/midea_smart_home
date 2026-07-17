@@ -34,6 +34,7 @@ async def async_setup_entry(
                 status_key = config.get("status_key")
                 ignore_values = config.get("ignore_values")
                 include_current = config.get("include_current")
+                local_only = config.get("local_only", False)
                 if isinstance(options, dict):
                     option_list = list(options.keys())
                 else:
@@ -41,7 +42,7 @@ async def async_setup_entry(
                 entities.append(
                     MideaSelectEntity(
                         coordinator, device_id, device_type, sn, sn8, device_name,
-                        select_id, option_list, options, command, translation_key, condition, status_key, ignore_values, include_current, model
+                        select_id, option_list, options, command, translation_key, condition, status_key, ignore_values, include_current, model, local_only
                     )
                 )
 
@@ -67,6 +68,7 @@ class MideaSelectEntity(MideaBaseEntity, SelectEntity):
         ignore_values: list = None,
         include_current: list = None,
         model: str = None,
+        local_only: bool = False,
     ):
         config = {"translation_key": translation_key} if translation_key else {}
         super().__init__(
@@ -82,6 +84,7 @@ class MideaSelectEntity(MideaBaseEntity, SelectEntity):
         self._include_current = include_current or []
         self._attr_options = options
         self._last_option: str | None = None
+        self._local_only = local_only
 
     def _is_ignored_value(self, value: Any) -> bool:
         if value is None:
@@ -144,6 +147,13 @@ class MideaSelectEntity(MideaBaseEntity, SelectEntity):
             return value
         return None
 
+    async def _run_validator(self, validator_name: str, option: str) -> None:
+        from .device_mapping.T0xE1 import dispatch_validator
+        await dispatch_validator(
+            validator_name, self.coordinator,
+            option=option, options_map=self._options_map,
+        )
+
     @property
     def current_option(self) -> str | None:
         if isinstance(self._options_map, dict):
@@ -182,6 +192,11 @@ class MideaSelectEntity(MideaBaseEntity, SelectEntity):
         if option not in self._options:
             return
 
+        # Device-specific validation hook (raises HomeAssistantError if blocked)
+        validator = self._config.get("validator")
+        if validator:
+            await self._run_validator(validator, option)
+
         self._last_option = option
 
         merged_command = {}
@@ -199,7 +214,13 @@ class MideaSelectEntity(MideaBaseEntity, SelectEntity):
             if current_value is not None:
                 merged_command[attr] = current_value
 
-        if merged_command:
+        if self._local_only:
+            if merged_command:
+                self.coordinator.device.set_locals(merged_command)
+            else:
+                index = self._options.index(option)
+                self.coordinator.device.set_local(self._select_id, index)
+        elif merged_command:
             await self.coordinator.async_set_control(merged_command)
         else:
             index = self._options.index(option)

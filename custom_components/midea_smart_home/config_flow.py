@@ -34,6 +34,8 @@ from .const import (
     CONF_MODEL_NUMBER,
     CONF_TOKEN,
     DEFAULT_PORT,
+    DEVICE_CONFIG_PATH,
+    DEVICE_CONFIG_SUPPORTED_TYPES,
     DEVICE_TYPES,
     DOMAIN,
     JSON_FILES_PATH,
@@ -46,7 +48,7 @@ from .midea_lib.packet_builder import PacketBuilder
 from .midea_lib.discovery import discover_devices, DISCOVERY_TIMEOUT
 from .midea_lib.lua import write_file, decrypt_lua_code, ensure_lua_files
 from .midea_lib.setup import validate_device
-from .midea_lib.cloud import download_lua_file
+from .midea_lib.cloud import download_lua_file, download_device_config, download_diff_config
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -611,6 +613,64 @@ class MideaSmartHomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     await self.hass.async_add_executor_job(write_file, lua_file_path, downloaded_lua)
                     lua_file = str(lua_file_path)
                     _LOGGER.info("Downloaded Lua file to %s", lua_file)
+
+                    if device_type in DEVICE_CONFIG_SUPPORTED_TYPES and sn8:
+                        try:
+                            device_config = await download_device_config(
+                                self._user_cloud._access_token,
+                                sn8,
+                                device_type,
+                            )
+                            if device_config:
+                                config_storage_dir = Path(
+                                    self.hass.config.config_dir
+                                ) / DEVICE_CONFIG_PATH
+                                config_storage_dir.mkdir(parents=True, exist_ok=True)
+                                config_path = (
+                                    config_storage_dir
+                                    / f"T0x{hex(device_type)[2:].upper()}_{sn8}.json"
+                                )
+                                await self.hass.async_add_executor_job(
+                                    write_file, config_path,
+                                    json.dumps(device_config, ensure_ascii=False, indent=2)
+                                )
+                                _LOGGER.info(
+                                    "Downloaded device config for sn8=%s to %s",
+                                    sn8, config_path
+                                )
+                        except Exception as err:
+                            _LOGGER.warning(
+                                "Failed to download device config for sn8=%s: %s",
+                                sn8, err
+                            )
+
+                        # Download diff config (per-device-type, sn8="DIFFTYPE")
+                        try:
+                            diff_config = await download_diff_config(
+                                self._user_cloud._access_token,
+                                device_type,
+                            )
+                            if diff_config:
+                                config_storage_dir = Path(
+                                    self.hass.config.config_dir
+                                ) / DEVICE_CONFIG_PATH
+                                config_storage_dir.mkdir(parents=True, exist_ok=True)
+                                diff_path = (
+                                    config_storage_dir
+                                    / f"T0x{hex(device_type)[2:].upper()}_DIFF.json"
+                                )
+                                await self.hass.async_add_executor_job(
+                                    write_file, diff_path,
+                                    json.dumps(diff_config, ensure_ascii=False, indent=2)
+                                )
+                                _LOGGER.info(
+                                    "Downloaded diff config for type=0x%X to %s",
+                                    device_type, diff_path
+                                )
+                        except Exception as err:
+                            _LOGGER.warning(
+                                "Failed to download diff config: %s", err
+                            )
 
         except (socket.error, OSError, ValueError, json.JSONDecodeError) as err:
             _LOGGER.error("Failed to get token/key or lua: %s", err)
