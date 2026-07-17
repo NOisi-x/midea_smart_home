@@ -9,6 +9,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import MideaCoordinator
 from .entity import MideaBaseEntity, iter_midea_device_configs
+from .device_mapping.T0xE1 import dispatch_validator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -148,7 +149,6 @@ class MideaSelectEntity(MideaBaseEntity, SelectEntity):
         return None
 
     async def _run_validator(self, validator_name: str, option: str) -> None:
-        from .device_mapping.T0xE1 import dispatch_validator
         await dispatch_validator(
             validator_name, self.coordinator,
             option=option, options_map=self._options_map,

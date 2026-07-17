@@ -262,37 +262,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 hass.config.config_dir, device_type_int
             )
             # ── Pre-compute all diff flags (init-time, not at runtime) ──
-            from .device_mapping.T0xE1 import has_diff as _has_diff
+            # Auto-discover every diffType category so new categories added
+            # to the whitelist are picked up without code changes elsewhere.
             _diff_data = coordinator.diff_data
-            coordinator.diff_flags = {
-                "autoThrowWithMode": _has_diff(_diff_data, sn8, "autoThrowWithMode"),
-                "devOffKeep": _has_diff(_diff_data, sn8, "devOffKeep"),
-                "turnOffOnKeepStart": _has_diff(_diff_data, sn8, "turnOffOnKeepStart"),
-                "keepWithoutDry": _has_diff(_diff_data, sn8, "keepWithoutDry"),
-                "additionalSync": _has_diff(_diff_data, sn8, "additionalSync"),
-                "withoutOrder": _has_diff(_diff_data, sn8, "withoutOrder"),
-            }
-            _LOGGER.info(
-                "Diff flags for SN8=%s: %s",
-                sn8, {k: v for k, v in coordinator.diff_flags.items() if v}
-            )
+            coordinator.diff_flags = {}
+            if _diff_data:
+                for category, sn8_list in _diff_data.get("diffType", {}).items():
+                    coordinator.diff_flags[category] = sn8 in sn8_list
+            active_flags = {k: v for k, v in coordinator.diff_flags.items() if v}
+            if active_flags:
+                _LOGGER.info("Diff flags for SN8=%s: %s", sn8, active_flags)
             # ── withoutOrder: hide order-related entities ──
-            if coordinator.diff_flags["withoutOrder"]:
+            if coordinator.diff_flags.get("withoutOrder"):
                 _LOGGER.info("Device %s does not support order — hiding order entities", sn8)
                 entities_cfg = device_mapping.get("entities", {})
                 entities_cfg.get("button", {}).pop("start_order", None)
                 entities_cfg.get("time", {}).pop("order_set_time", None)
                 entities_cfg.get("sensor", {}).pop("order_left_time", None)
-            # Cache keepStartNow from device config for statusNum computation
+            # Cache keepStartNow from the same version block that
+            # apply_device_config selected, for statusNum computation.
             coordinator.keep_start_now = False
             if device_config:
-                for version_data in device_config.values():
-                    if isinstance(version_data, dict):
-                        setting = version_data.get("setting", {})
-                        coordinator.keep_start_now = bool(
-                            setting.get("keepStartNow", 0)
-                        )
-                        break
+                version_key = f"version_{device_version}"
+                if version_key not in device_config:
+                    version_key = "version_0"
+                version_data = device_config.get(version_key, {})
+                if isinstance(version_data, dict):
+                    setting = version_data.get("setting", {})
+                    coordinator.keep_start_now = bool(
+                        setting.get("keepStartNow", 0)
+                    )
 
             import asyncio
             if initial_query and isinstance(initial_query, list):

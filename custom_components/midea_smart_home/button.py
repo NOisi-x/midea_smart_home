@@ -8,6 +8,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import MideaCoordinator
 from .entity import MideaBaseEntity, iter_midea_device_configs
+from .device_mapping.T0xE1 import (
+    dispatch_validator,
+    get_status_num,
+    build_start_command,
+    build_cancel_command,
+    build_pause_command,
+    build_order_command,
+    calc_condition_result,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,17 +93,10 @@ class MideaButtonEntity(MideaBaseEntity, ButtonEntity):
             _LOGGER.warning("Button %s has no command configured", self._entity_key)
 
     async def _run_validator(self, validator_name: str) -> None:
-        from .device_mapping.T0xE1 import dispatch_validator
         await dispatch_validator(validator_name, self.coordinator)
 
     async def _build_with_hook(self, builder_name: str) -> dict:
         """Call a device-specific command builder from T0xE1.py."""
-        from .device_mapping.T0xE1 import (
-            get_status_num, build_start_command,
-            build_cancel_command, build_pause_command,
-            build_order_command, calc_condition_result,
-        )
-
         data = self.coordinator.data or {}
         status_num = get_status_num(
             data.get("work_status"),
@@ -115,7 +117,7 @@ class MideaButtonEntity(MideaBaseEntity, ButtonEntity):
                     mode_name, mode_conditions, data, bright_condition
                 )
                 if result:
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "Condition result for %s (mode=%s, bright_lack=%s): "
                         "time=%s, temp=%s, step=%s",
                         builder_name, mode_name,

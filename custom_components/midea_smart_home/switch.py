@@ -10,6 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .coordinator import MideaCoordinator
 from .entity import MideaBaseEntity, iter_midea_device_configs
+from .device_mapping.T0xE1 import dispatch_validator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -104,7 +105,6 @@ class MideaSwitchEntity(MideaBaseEntity, SwitchEntity):
         return False
 
     async def _run_validator(self, validator_name: str) -> None:
-        from .device_mapping.T0xE1 import dispatch_validator
         await dispatch_validator(validator_name, self.coordinator)
 
     @property
@@ -153,17 +153,20 @@ class MideaSwitchEntity(MideaBaseEntity, SwitchEntity):
                         {"auto_throw": int(turn_on)}
                     )
         elif full_command:
-            # ── devOffKeep: close keep before power off ──
+            # ── devOffKeep / keepOffOnPowerOff: close keep before power off ──
             if self._switch_id == "power" and not turn_on:
                 flags = getattr(self.coordinator, "diff_flags", {})
-                if flags.get("devOffKeep"):
+                if flags.get("devOffKeep") or flags.get("keepOffOnPowerOff"):
                     data = self.coordinator.data or {}
                     try:
                         airswitch = int(data.get("airswitch", 0))
                     except (ValueError, TypeError):
                         airswitch = 0
                     if airswitch > 0:
-                        _LOGGER.info("devOffKeep: closing keep before power off")
+                        _LOGGER.info(
+                            "Closing keep before power off (flag=%s)",
+                            "devOffKeep" if flags.get("devOffKeep") else "keepOffOnPowerOff"
+                        )
                         await self.coordinator.async_set_control({"airswitch": 0})
             # Full-command switch: send directly via set_attributes to avoid
             # centralized bundling of unrelated keys (e.g. power_off should

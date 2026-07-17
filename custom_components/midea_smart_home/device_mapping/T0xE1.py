@@ -341,21 +341,27 @@ def validate_can_operate(
     action: str,
     data: dict,
     status_num: int,
+    diff_flags: dict = None,
 ) -> None:
     """Pre-operation guard matching mini-program canClick / utils.js.
 
     Blocks operations when device is in a state that can't accept them.
     Raises HomeAssistantError with a Chinese message.
     """
+    if diff_flags is None:
+        diff_flags = {}
+
     # Power — blocks start/order (must be powered on)
     if action in ("start", "order"):
         if status_num == 0:
             raise HomeAssistantError("设备已关机，请先开机")
 
-    # Door open — blocks everything except power, cancel, lock toggle
-    if action not in ("power", "cancel"):
-        if not data.get("doorswitch"):
-            raise HomeAssistantError("门开中，请先关门后操作")
+    # Door open — blocks everything except power, cancel, lock toggle.
+    # doorOff devices have unreliable door sensors; skip door check.
+    if not diff_flags.get("doorOff"):
+        if action not in ("power", "cancel"):
+            if not data.get("doorswitch"):
+                raise HomeAssistantError("门开中，请先关门后操作")
 
     # Child lock — blocks everything
     if data.get("lock") == "on":
@@ -442,7 +448,7 @@ async def dispatch_validator(
             dryswitch=data.get("dryswitch", 0),
             keep_start_now=keep_start_now,
         )
-        validate_can_operate(action, data, status_num)
+        validate_can_operate(action, data, status_num, diff_flags)
 
     # ── additional-function conflict (door_open_dry vs keep) ──
     elif validator_name == "additional":
@@ -498,9 +504,14 @@ def build_order_command(
     cmd: dict = {
         "work_status": "order",
         "mode": mode,
-        "order_set_hour": delay_h,
-        "order_set_min": delay_m,
     }
+    if diff_flags.get("minuteOrder"):
+        # These devices only understand a single total-minute delay field.
+        cmd["order_set_hour"] = 0
+        cmd["order_set_min"] = delay_h * 60 + delay_m
+    else:
+        cmd["order_set_hour"] = delay_h
+        cmd["order_set_min"] = delay_m
 
     supported = mode_features.get(mode, set())
 
