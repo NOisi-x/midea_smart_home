@@ -127,8 +127,7 @@ class MideaButtonEntity(MideaBaseEntity, ButtonEntity):
             cmd = build_start_command(
                 data, status_num,
                 getattr(self.coordinator, "mode_features", {}),
-                getattr(self.coordinator, "sn8", ""),
-                getattr(self.coordinator, "diff_data", None),
+                getattr(self.coordinator, "diff_flags", {}),
             )
             action = cmd.pop("_action", None)
             if action == "start_keep":
@@ -150,8 +149,7 @@ class MideaButtonEntity(MideaBaseEntity, ButtonEntity):
             return build_order_command(
                 data,
                 getattr(self.coordinator, "mode_features", {}),
-                getattr(self.coordinator, "sn8", ""),
-                getattr(self.coordinator, "diff_data", None),
+                getattr(self.coordinator, "diff_flags", {}),
             )
 
         return {}

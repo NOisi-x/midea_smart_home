@@ -146,22 +146,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         device_mapping = get_device_mapping(device_type_int, model, sn8, category)
 
-        # Apply per-device config from cloud download, unless the mapping
-        # variant opts out (e.g. hand-crafted SN8-specific mappings).
+        # Load per-device cloud config from local storage (file read only).
+        # apply_device_config is deferred until after device connection so we
+        # can use the real device version reported in the initial status.
         device_config = None
         if not device_mapping.get("manual_only"):
             device_config = load_device_config(
                 hass.config.config_dir, device_type_int, sn8
             )
-            if device_config:
-                device_mapping = apply_device_config(
-                    device_mapping, device_config, device_type_int, 0
-                )
-                _LOGGER.info(
-                    "Applied device config for sn8=%s, type=0x%X",
-                    sn8, device_type_int
-                )
 
+        # Extract static configuration from the raw mapping.
+        # These fields are NOT modified by apply_device_config, so using the
+        # raw mapping here is safe regardless of cloud config version.
         calculate_config = device_mapping.get("calculate", {})
         centralized = list(device_mapping.get("centralized", []))
         default_values = dict(device_mapping.get("default_values", {}))
@@ -232,6 +228,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if not device.available:
                 _LOGGER.warning("Device %s failed to connect after 5 seconds, will retry in background", device_id)
 
+            # Apply per-device cloud config with the real device version
+            # reported in the initial status data, so that version_N blocks
+            # in the cloud config are matched correctly.
+            if device_config:
+                device_version = 0
+                try:
+                    device_version = int(
+                        (device.data or {}).get("version", 0) or 0
+                    )
+                except (ValueError, TypeError):
+                    device_version = 0
+                device_mapping = apply_device_config(
+                    device_mapping, device_config,
+                    device_type_int, device_version
+                )
+                _LOGGER.info(
+                    "Applied device config for sn8=%s, type=0x%X, version=%d",
+                    sn8, device_type_int, device_version
+                )
+
             coordinator = MideaCoordinator(
                 hass,
                 device,
@@ -245,6 +261,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             coordinator.diff_data = load_diff_config(
                 hass.config.config_dir, device_type_int
             )
+            # ── Pre-compute all diff flags (init-time, not at runtime) ──
+            from .device_mapping.T0xE1 import has_diff as _has_diff
+            _diff_data = coordinator.diff_data
+            coordinator.diff_flags = {
+                "autoThrowWithMode": _has_diff(_diff_data, sn8, "autoThrowWithMode"),
+                "devOffKeep": _has_diff(_diff_data, sn8, "devOffKeep"),
+                "turnOffOnKeepStart": _has_diff(_diff_data, sn8, "turnOffOnKeepStart"),
+                "keepWithoutDry": _has_diff(_diff_data, sn8, "keepWithoutDry"),
+                "additionalSync": _has_diff(_diff_data, sn8, "additionalSync"),
+                "withoutOrder": _has_diff(_diff_data, sn8, "withoutOrder"),
+            }
+            _LOGGER.info(
+                "Diff flags for SN8=%s: %s",
+                sn8, {k: v for k, v in coordinator.diff_flags.items() if v}
+            )
+            # ── withoutOrder: hide order-related entities ──
+            if coordinator.diff_flags["withoutOrder"]:
+                _LOGGER.info("Device %s does not support order — hiding order entities", sn8)
+                entities_cfg = device_mapping.get("entities", {})
+                entities_cfg.get("button", {}).pop("start_order", None)
+                entities_cfg.get("time", {}).pop("order_set_time", None)
+                entities_cfg.get("sensor", {}).pop("order_left_time", None)
             # Cache keepStartNow from device config for statusNum computation
             coordinator.keep_start_now = False
             if device_config:

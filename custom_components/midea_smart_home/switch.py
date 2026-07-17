@@ -146,17 +146,25 @@ class MideaSwitchEntity(MideaBaseEntity, SwitchEntity):
         if self._local_only:
             self.coordinator.device.set_locals(merged_command)
             # ── autoThrow non-whitelist: send immediately to device ──
-            # Mirror mini-program: non-autoThrowWithMode devices send
-            # auto_throw immediately on toggle, not bundled in start command.
             if self._switch_id == "auto_throw":
-                from .device_mapping.T0xE1 import has_diff
-                diff_data = getattr(self.coordinator, "diff_data", None)
-                sn8 = getattr(self.coordinator, "sn8", "")
-                if not has_diff(diff_data, sn8, "autoThrowWithMode"):
+                flags = getattr(self.coordinator, "diff_flags", {})
+                if not flags.get("autoThrowWithMode"):
                     await self.coordinator.async_set_control(
                         {"auto_throw": int(turn_on)}
                     )
         elif full_command:
+            # ── devOffKeep: close keep before power off ──
+            if self._switch_id == "power" and not turn_on:
+                flags = getattr(self.coordinator, "diff_flags", {})
+                if flags.get("devOffKeep"):
+                    data = self.coordinator.data or {}
+                    try:
+                        airswitch = int(data.get("airswitch", 0))
+                    except (ValueError, TypeError):
+                        airswitch = 0
+                    if airswitch > 0:
+                        _LOGGER.info("devOffKeep: closing keep before power off")
+                        await self.coordinator.async_set_control({"airswitch": 0})
             # Full-command switch: send directly via set_attributes to avoid
             # centralized bundling of unrelated keys (e.g. power_off should
             # NOT bundle mode/water_level).

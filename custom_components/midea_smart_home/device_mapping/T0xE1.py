@@ -6,7 +6,7 @@ lives here to keep the codebase clean and device logic self-contained.
 
 import datetime as _dt
 import logging
-from typing import Any, Optional
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ def get_status_num(
     return num
 
 
-def has_diff(diff_data: Optional[dict], sn8: str, category: str) -> bool:
+def has_diff(diff_data: dict, sn8: str, category: str) -> bool:
     """Check if device sn8 is in a diffType whitelist category.
 
     Equivalent to mini-program withDiff(category).
@@ -182,8 +182,7 @@ def build_start_command(
     data: dict,
     status_num: int,
     mode_features: dict,
-    sn8: str,
-    diff_data: Optional[dict],
+    diff_flags: dict,
 ) -> dict:
     """Build start-wash command matching mini-program operator.js start().
 
@@ -196,7 +195,7 @@ def build_start_command(
         mode = data.get("mode", "")
 
         if mode == "keep":
-            if has_diff(diff_data, sn8, "turnOffOnKeepStart"):
+            if diff_flags.get("turnOffOnKeepStart"):
                 return {"_action": "cancel_keep_then_start"}
             return {"_action": "start_keep"}
 
@@ -231,7 +230,7 @@ def build_start_command(
             val = data.get("door_auto_open")
             if val is not None:
                 cmd["door_auto_open"] = 1 if val else 2
-        if "auto_throw" in supported and has_diff(diff_data, sn8, "autoThrowWithMode"):
+        if "auto_throw" in supported and diff_flags.get("autoThrowWithMode"):
             val = data.get("auto_throw")
             if val is not None:
                 cmd["auto_throw"] = 1 if val else 0
@@ -268,8 +267,7 @@ def validate_additional(
     option_key: str,
     options_map: dict,
     data: dict,
-    diff_data: Optional[dict],
-    sn8: str,
+    diff_flags: dict,
 ) -> None:
     """Validate additional select change. Raises HomeAssistantError if blocked.
 
@@ -286,7 +284,7 @@ def validate_additional(
     if value_map.get("additional") != 18:
         return
 
-    if not has_diff(diff_data, sn8, "additionalSync"):
+    if not diff_flags.get("additionalSync"):
         return
 
     try:
@@ -299,14 +297,13 @@ def validate_additional(
 def validate_keep_dry(
     action: str,
     data: dict,
-    diff_data: Optional[dict],
-    sn8: str,
+    diff_flags: dict,
 ) -> None:
     """Validate keep/dry mutual exclusion. Raises HomeAssistantError if blocked.
 
     Matching mini-program keepWithoutDry diff whitelist.
     """
-    if not has_diff(diff_data, sn8, "keepWithoutDry"):
+    if not diff_flags.get("keepWithoutDry"):
         return
 
     if action == "dry":
@@ -424,13 +421,12 @@ async def dispatch_validator(
         HomeAssistantError: When the validation check blocks the action.
     """
     data = coordinator.data or {}
-    sn8 = getattr(coordinator, "sn8", "")
-    diff_data = getattr(coordinator, "diff_data", None)
+    diff_flags = getattr(coordinator, "diff_flags", {})
     keep_start_now = getattr(coordinator, "keep_start_now", False)
 
     # ── keep / dry mutual exclusion ──
     if validator_name in ("keep", "dry"):
-        validate_keep_dry(validator_name, data, diff_data, sn8)
+        validate_keep_dry(validator_name, data, diff_flags)
 
     # ── keep-on requires duration set ──
     elif validator_name == "keep_on":
@@ -450,7 +446,7 @@ async def dispatch_validator(
 
     # ── additional-function conflict (door_open_dry vs keep) ──
     elif validator_name == "additional":
-        validate_additional(option or "", options_map or {}, data, diff_data, sn8)
+        validate_additional(option or "", options_map or {}, data, diff_flags)
 
 
 def build_pause_command(data: dict, status_num: int) -> dict:
@@ -471,8 +467,7 @@ def build_pause_command(data: dict, status_num: int) -> dict:
 def build_order_command(
     data: dict,
     mode_features: dict,
-    sn8: str,
-    diff_data: Optional[dict],
+    diff_flags: dict,
 ) -> dict:
     """Build order (schedule) command matching mini-program deviceOrder.js order().
 
@@ -517,7 +512,7 @@ def build_order_command(
         val = data.get("door_auto_open")
         if val is not None:
             cmd["door_auto_open"] = 1 if val else 2
-    if "auto_throw" in supported and has_diff(diff_data, sn8, "autoThrowWithMode"):
+    if "auto_throw" in supported and diff_flags.get("autoThrowWithMode"):
         val = data.get("auto_throw")
         if val is not None:
             cmd["auto_throw"] = 1 if val else 0
