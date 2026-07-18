@@ -40,12 +40,11 @@ async def async_setup_entry(
                     option_list = list(options.keys())
                 else:
                     option_list = options
-                entities.append(
-                    MideaSelectEntity(
-                        coordinator, device_id, device_type, sn, sn8, device_name,
-                        select_id, option_list, options, command, translation_key, condition, status_key, ignore_values, include_current, model, local_only
-                    )
+                entity = MideaSelectEntity(
+                    coordinator, device_id, device_type, sn, sn8, device_name,
+                    select_id, option_list, options, command, translation_key, condition, status_key, ignore_values, include_current, model, local_only
                 )
+                entities.append(entity)
 
     async_add_entities(entities)
 
@@ -215,6 +214,14 @@ class MideaSelectEntity(MideaBaseEntity, SelectEntity):
                 merged_command[attr] = current_value
 
         if self._local_only:
+            # ── Clear stale sub-feature values when wash mode changes ──
+            if self._select_id == "wash_mode":
+                device = self.coordinator.device
+                for key in list(device._local_data):
+                    if key != "mode":
+                        del device._local_data[key]
+                self.coordinator.last_user_mode = option
+
             if merged_command:
                 self.coordinator.device.set_locals(merged_command)
             else:

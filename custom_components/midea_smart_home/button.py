@@ -1,9 +1,11 @@
 import logging
+import asyncio
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import MideaCoordinator
@@ -85,10 +87,20 @@ class MideaButtonEntity(MideaBaseEntity, ButtonEntity):
 
         if command:
             await self.coordinator.async_set_control(command)
-            # Clear local_only cache after start/order — values have been consumed
+            # Clear consumed local_only cache after start/order.
+            # Skip order_target_* keys — they belong to the TIME entity and
+            # are not consumed wash parameters.
             if command_builder in ("start_wash", "order"):
-                self.coordinator.device._local_data.clear()
-                self.coordinator.device._notify_update()
+                device = self.coordinator.device
+                for k in list(device._local_data):
+                    if k not in ("order_target_hour", "order_target_min"):
+                        del device._local_data[k]
+                device._notify_update()
+        elif command_builder:
+            _LOGGER.info(
+                "Button %s (%s): device not in operable state, no command sent",
+                self._entity_key, command_builder
+            )
         else:
             _LOGGER.warning("Button %s has no command configured", self._entity_key)
 
@@ -126,10 +138,35 @@ class MideaButtonEntity(MideaBaseEntity, ButtonEntity):
                     )
 
         if builder_name == "start_wash":
+            # Power on first if the device is off.  Poll for standby
+            # (work_status=cancel) instead of a fixed sleep so we
+            # never send the start command before the device is ready.
+            if status_num == 0:
+                await self.coordinator.async_set_control(
+                    {"work_status": "power_on"}
+                )
+                for _ in range(100):  # max 10s
+                    await asyncio.sleep(0.1)
+                    data = self.coordinator.data or {}
+                    ws = data.get("work_status", "")
+                    if get_status_num(ws) != 0:
+                        break
+                else:
+                    raise HomeAssistantError(
+                        "设备开机超时，请检查设备"
+                    )
+                status_num = get_status_num(
+                    data.get("work_status", ""),
+                    data.get("airswitch"),
+                    data.get("air_left_hour"),
+                    data.get("dryswitch"),
+                    getattr(self.coordinator, "keep_start_now", False),
+                )
             cmd = build_start_command(
                 data, status_num,
                 getattr(self.coordinator, "mode_features", {}),
                 getattr(self.coordinator, "diff_flags", {}),
+                last_user_mode=self.coordinator.last_user_mode,
             )
             action = cmd.pop("_action", None)
             if action == "start_keep":
@@ -152,6 +189,7 @@ class MideaButtonEntity(MideaBaseEntity, ButtonEntity):
                 data,
                 getattr(self.coordinator, "mode_features", {}),
                 getattr(self.coordinator, "diff_flags", {}),
+                last_user_mode=self.coordinator.last_user_mode,
             )
 
         return {}

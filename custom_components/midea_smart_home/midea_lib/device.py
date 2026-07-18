@@ -448,6 +448,7 @@ class MideaDevice:
 
         self._data = {}
         self._local_data: dict = {}  # Values set by local_only entities, survives device updates
+        self._last_user_mode: str = ""  # Last valid mode the user explicitly selected
         self._available = False
         self._last_available_time: float = 0.0
         self._pending_unavailable = False
@@ -499,11 +500,22 @@ class MideaDevice:
     def set_local(self, key: str, value: Any) -> None:
         """Set a value that survives device status updates (local_only mode)."""
         self._local_data[key] = value
+        # Remember the last valid wash mode explicitly selected by the user
+        if key == "mode" and value and value != "neutral_gear":
+            self._last_user_mode = value
         self._notify_update()
+
+    def get_local(self, key: str, default: Any = None) -> Any:
+        """Get a user-set local value, returning default if never set."""
+        return self._local_data.get(key, default)
 
     def set_locals(self, values: dict) -> None:
         """Set multiple values that survive device status updates."""
         self._local_data.update(values)
+        # Track the last valid wash mode from bulk updates (wash_mode SELECT
+        # uses set_locals, not set_local).
+        if "mode" in values and values["mode"] and values["mode"] != "neutral_gear":
+            self._last_user_mode = values["mode"]
         self._notify_update()
 
     @property
@@ -754,6 +766,53 @@ class MideaDevice:
         new_data = self._expression_evaluator.apply_calculations(new_data)
 
         self._data = new_data
+
+        # ── E1 auto-seed: restore device-reported mode to _local_data
+        # so that mode-dependent sub-feature entities are visible in HA.
+        #
+        # Idle state (standby/power_off/cancel/""): restore mode from device
+        # or fall back to _last_user_mode.  Handles empty-string mode (some
+        # models report "" instead of "neutral_gear" when idle).
+        #
+        # Running state (work): seed real wash modes so that washes started
+        # via the mini-program also show sub-features in HA.
+        if (
+            self._device_type == 0xE1
+            and "mode" not in self._local_data
+        ):
+            mode = self._data.get("mode", "")
+            work_status = self._data.get("work_status", "")
+
+            # ── Idle: restore mode so user can interact with sub-features ──
+            if work_status in ("standby", "power_off", "cancel", ""):
+                if not mode or mode in ("neutral_gear", "invalid"):
+                    if self._last_user_mode:
+                        self._local_data["mode"] = self._last_user_mode
+                        _LOGGER.debug(
+                            "E1 auto-seed: mode=%r idle → fallback to "
+                            "_last_user_mode=%s", mode, self._last_user_mode
+                        )
+                    else:
+                        _LOGGER.debug(
+                            "E1 auto-seed: mode=%r idle but "
+                            "_last_user_mode is empty — cannot seed", mode
+                        )
+                else:
+                    self._local_data["mode"] = mode
+                    _LOGGER.debug(
+                        "E1 auto-seed: seeded mode=%s from device (idle)", mode
+                    )
+
+            # ── Running: seed real wash mode from device ──
+            elif (
+                mode
+                and mode not in ("neutral_gear", "invalid")
+            ):
+                self._local_data["mode"] = mode
+                _LOGGER.debug(
+                    "E1 auto-seed: seeded mode=%s from device (running)", mode
+                )
+
         self._available = True
         self._notify_update()
 

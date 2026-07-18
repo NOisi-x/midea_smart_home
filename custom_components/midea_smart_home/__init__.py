@@ -151,8 +151,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # can use the real device version reported in the initial status.
         device_config = None
         if not device_mapping.get("manual_only"):
-            device_config = load_device_config(
-                hass.config.config_dir, device_type_int, sn8
+            device_config = await load_device_config(
+                hass, hass.config.config_dir, device_type_int, sn8
             )
 
         # Extract static configuration from the raw mapping.
@@ -258,8 +258,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             coordinator.mode_features = device_mapping.get("_mode_features", {})
             coordinator.device_mapping = device_mapping
             coordinator.sn8 = sn8
-            coordinator.diff_data = load_diff_config(
-                hass.config.config_dir, device_type_int
+            coordinator.diff_data = await load_diff_config(
+                hass, hass.config.config_dir, device_type_int
             )
             # ── Pre-compute all diff flags (init-time, not at runtime) ──
             # Auto-discover every diffType category so new categories added

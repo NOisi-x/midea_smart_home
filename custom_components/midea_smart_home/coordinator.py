@@ -127,6 +127,7 @@ class MideaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.device_type = device.device_id
         self.config_entry = config_entry
         self._was_available: bool | None = None
+        self.last_user_mode: str = ""
         self._initialized: bool = False
         self._active: bool = True
 

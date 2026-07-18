@@ -110,7 +110,7 @@ def get_device_mapping(device_type: int, model: str = "", sn8: str = "", categor
     return result
 
 
-def load_device_config(hass_config_dir: str, device_type: int, sn8: str) -> dict | None:
+async def load_device_config(hass, hass_config_dir: str, device_type: int, sn8: str) -> dict | None:
     """Load per-device configuration from local storage.
 
     Args:
@@ -134,24 +134,34 @@ def load_device_config(hass_config_dir: str, device_type: int, sn8: str) -> dict
     if not config_path.exists():
         return None
 
-    try:
+    def _read():
         return json.loads(config_path.read_text(encoding="utf-8"))
+
+    try:
+        return await hass.async_add_executor_job(_read)
     except (json.JSONDecodeError, OSError) as e:
         _LOGGER.warning("Failed to load device config %s: %s", config_path, e)
         return None
 
 
-def load_diff_config(hass_config_dir: str, device_type: int) -> dict | None:
+async def load_diff_config(hass, hass_config_dir: str, device_type: int) -> dict | None:
     """Load per-device-type diff config from local storage.
 
-    Falls back to the embedded default diff from the device mapping file.
+    The cloud ``getAppModelConfig?sn8=DIFFTYPE`` API returns the complete
+    diff document for a device type — all sections (diffType / otherType /
+    Filter / …) and all categories are present in a single atomic
+    response.  Partial responses do not occur in practice, so a simple
+    "cloud if available → default otherwise" is correct and avoids
+    accidentally resurrecting categories that the cloud team has
+    intentionally removed.
 
     Args:
         hass_config_dir: Home Assistant config directory
         device_type: Device type (e.g., 0xE1)
 
     Returns:
-        Diff config dict (with "diffType" key) on success, None if unavailable
+        Diff config dict (with "diffType" key) on success,
+        None if neither source is available.
     """
     from ..const import DEVICE_CONFIG_PATH
 
@@ -161,8 +171,13 @@ def load_diff_config(hass_config_dir: str, device_type: int) -> dict | None:
     )
 
     if config_path.exists():
-        try:
+        def _read():
             return json.loads(config_path.read_text(encoding="utf-8"))
+
+        try:
+            cloud = await hass.async_add_executor_job(_read)
+            _LOGGER.info("Using cloud diff for device type 0x%X", device_type)
+            return cloud
         except (json.JSONDecodeError, OSError) as e:
             _LOGGER.warning("Failed to load diff config %s: %s", config_path, e)
 
@@ -398,7 +413,8 @@ def apply_device_config(
         if not (settings.get("keepStartNow") or settings.get("keepSetTime")):
             switch_config.pop("airswitch", None)
             number_config.pop("air_set_hour", None)
-            removed_entities.extend(["airswitch", "air_set_hour"])
+            button_config.pop("start_keep", None)
+            removed_entities.extend(["airswitch", "air_set_hour", "start_keep"])
         elif not settings.get("keepSetTime"):
             number_config.pop("air_set_hour", None)
 
@@ -406,7 +422,8 @@ def apply_device_config(
         if not (settings.get("dryStartNow") or settings.get("drySetTime")):
             switch_config.pop("dryswitch", None)
             number_config.pop("dry_set_min", None)
-            removed_entities.extend(["dryswitch", "dry_set_min"])
+            button_config.pop("start_dry", None)
+            removed_entities.extend(["dryswitch", "dry_set_min", "start_dry"])
         elif not settings.get("drySetTime"):
             number_config.pop("dry_set_min", None)
 
@@ -423,17 +440,17 @@ def apply_device_config(
                 has_keep_btn = True
                 break
     result["_has_keep_btn"] = has_keep_btn
-    if has_keep_btn:
+    if has_keep_btn and "start_keep" in button_config:
         _LOGGER.info("hasKeepBtn=true — keep is button form, hiding start_keep")
-        button_config.pop("start_keep", None)
+        button_config.pop("start_keep")
         removed_entities.append("start_keep")
 
     # hasDryBtn: !drySetTime (no dry time setting → button form)
     has_dry_btn = not bool(settings.get("drySetTime", False))
     result["_has_dry_btn"] = has_dry_btn
-    if has_dry_btn:
+    if has_dry_btn and "start_dry" in button_config:
         _LOGGER.info("hasDryBtn=true — dry is button form, hiding start_dry")
-        button_config.pop("start_dry", None)
+        button_config.pop("start_dry")
     else:
         _LOGGER.info("hasDryBtn=false — standalone dry mode, keeping start_dry")
 

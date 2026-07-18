@@ -6,7 +6,7 @@ lives here to keep the codebase clean and device logic self-contained.
 
 import datetime as _dt
 import logging
-from typing import Any
+from typing import Any, Optional
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -81,25 +81,6 @@ def get_status_num(
         num = 1
 
     return num
-
-
-def has_diff(diff_data: dict, sn8: str, category: str) -> bool:
-    """Check if device sn8 is in a diffType whitelist category.
-
-    Equivalent to mini-program withDiff(category).
-
-    Args:
-        diff_data: Full diff dict (with "diffType" key)
-        sn8: Device model code (8 chars)
-        category: Diff category name (e.g. "devOffKeep")
-
-    Returns:
-        True if sn8 in diffType[category]
-    """
-    if not diff_data or not sn8:
-        return False
-    sn8_list = diff_data.get("diffType", {}).get(category, [])
-    return sn8 in sn8_list
 
 
 def calc_condition_result(
@@ -183,6 +164,7 @@ def build_start_command(
     status_num: int,
     mode_features: dict,
     diff_flags: dict,
+    last_user_mode: str = "",
 ) -> dict:
     """Build start-wash command matching mini-program operator.js start().
 
@@ -203,6 +185,17 @@ def build_start_command(
             return {"_action": "start_dry"}
 
         # Normal washing mode
+        # Fall back to the last valid mode when the device reports an
+        # internal state (neutral_gear etc.) that isn't a real wash mode.
+        # This matches the mini-program: curMode keeps the last user pick.
+        if not mode or not mode_features.get(mode):
+            if last_user_mode and mode_features.get(last_user_mode):
+                mode = last_user_mode
+            else:
+                valid = [m for m in (mode_features or {}) if m not in ("keep", "dry")]
+                mode = valid[0] if valid else ""
+        if not mode:
+            return {}
         cmd: dict = {"work_status": "work", "mode": mode}
         supported = mode_features.get(mode, set())
 
@@ -224,8 +217,8 @@ def build_start_command(
                 cmd["work_time"] = val
         if "wash_region" in supported:
             val = data.get("wash_region")
-            if val is not None:
-                cmd["wash_region"] = val if int(val) > 0 else 3
+            if val is not None and int(val) in (1, 2):
+                cmd["wash_region"] = val
         if "door_auto_open" in supported:
             val = data.get("door_auto_open")
             if val is not None:
@@ -351,11 +344,6 @@ def validate_can_operate(
     if diff_flags is None:
         diff_flags = {}
 
-    # Power — blocks start/order (must be powered on)
-    if action in ("start", "order"):
-        if status_num == 0:
-            raise HomeAssistantError("设备已关机，请先开机")
-
     # Door open — blocks everything except power, cancel, lock toggle.
     # doorOff devices have unreliable door sensors; skip door check.
     if not diff_flags.get("doorOff"):
@@ -376,7 +364,12 @@ def validate_can_operate(
         if data.get("work_status") == "pipeInspect":
             raise HomeAssistantError("设备排水中，暂不可控制")
 
-    # Water lack — blocks start
+    # Mode required — blocks start and order
+    if action in ("start", "order"):
+        if not data.get("mode", ""):
+            raise HomeAssistantError("请先选择洗涤模式")
+
+    # Water lack — blocks start (keep/dry/germ modes exempt)
     if action == "start":
         mode = data.get("mode", "")
         if data.get("water_lack") and mode not in ("germ", "keep", "dry"):
@@ -474,6 +467,7 @@ def build_order_command(
     data: dict,
     mode_features: dict,
     diff_flags: dict,
+    last_user_mode: str = "",
 ) -> dict:
     """Build order (schedule) command matching mini-program deviceOrder.js order().
 
@@ -485,7 +479,12 @@ def build_order_command(
     # Exclude keep/dry from order modes (matches mini-program getOrderNameList)
     order_modes = {k: v for k, v in mode_features.items() if k not in ("keep", "dry")}
     if mode not in order_modes and order_modes:
-        mode = next(iter(order_modes))
+        # Fall back to last user-selected mode first;
+        # use first available mode only as last resort.
+        if last_user_mode and last_user_mode in order_modes:
+            mode = last_user_mode
+        else:
+            mode = next(iter(order_modes))
     target_h = data.get("order_target_hour")
     target_m = data.get("order_target_min")
 
@@ -541,8 +540,8 @@ def build_order_command(
             cmd["water_strong_level"] = val
     if "wash_region" in supported:
         val = data.get("wash_region")
-        if val is not None:
-            cmd["wash_region"] = val if int(val) > 0 else 3
+        if val is not None and int(val) in (1, 2):
+            cmd["wash_region"] = val
     if "work_time" in supported:
         val = data.get("work_time")
         if val is not None and val:

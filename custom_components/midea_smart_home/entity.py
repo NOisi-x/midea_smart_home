@@ -108,11 +108,17 @@ class MideaBaseEntity(CoordinatorEntity[MideaCoordinator]):
             return False
 
         # Check mode_dependent: entity only available when
-        # current device mode supports this feature
+        # current device mode supports this feature.
+        # Uses get_local() instead of data["mode"] to read the
+        # user-selected mode, NOT the device-reported mode (which
+        # may be stale from a previous wash cycle).
         if self._config.get("mode_dependent"):
+            current_mode = self.coordinator.device.get_local("mode", "")
+            if not current_mode:
+                # No mode selected by user — hide all mode-dependent entities
+                return False
             mode_features = getattr(self.coordinator, "mode_features", {})
-            current_mode = data.get("mode", "")
-            if current_mode and mode_features:
+            if mode_features:
                 supported = mode_features.get(current_mode, set())
                 if self._entity_key not in supported:
                     return False
