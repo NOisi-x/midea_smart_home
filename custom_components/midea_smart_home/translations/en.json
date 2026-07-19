@@ -164,6 +164,9 @@
       "screen_status": {
         "name": "Screen Status"
       },
+      "smelly_trigger": {
+        "name": "Smelly Trigger"
+      },
       "softener_lack": {
         "name": "Softener Status"
       },
@@ -181,12 +184,12 @@
       },
       "water_output_switch": {
         "name": "Tap Water"
-      },
-      "smelly_trigger": {
-        "name": "Smelly Trigger"
       }
     },
     "button": {
+      "cancel": {
+        "name": "Cancel"
+      },
       "cancel_order": {
         "name": "Cancel Order"
       },
@@ -196,8 +199,14 @@
       "left_stove_off": {
         "name": "Turn Off Left Stove"
       },
+      "pause": {
+        "name": "Pause/Resume"
+      },
       "right_stove_off": {
         "name": "Turn Off Right Stove"
+      },
+      "start": {
+        "name": "Start"
       },
       "start_dry": {
         "name": "Standalone Dry"
@@ -210,15 +219,6 @@
       },
       "start_wash": {
         "name": "Start Wash"
-      },
-      "start": {
-        "name": "Start"
-      },
-      "cancel": {
-        "name": "Cancel"
-      },
-      "pause": {
-        "name": "Pause/Resume"
       },
       "stop": {
         "name": "Stop"
@@ -267,6 +267,15 @@
       "bath_heater": {
         "name": "Thermostat (Bath Heater)",
         "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "silent": "Silent",
+              "soft_wind": "Soft Wind",
+              "standard": "Standard",
+              "storm": "Storm",
+              "strong": "Strong"
+            }
+          },
           "preset_mode": {
             "state": {
               "bath": "Bath",
@@ -274,8 +283,8 @@
               "close": "Close",
               "drying": "Drying",
               "heating": "Heating",
-              "ventilation": "Ventilation",
-              "soft_wind": "Soft Wind"
+              "soft_wind": "Soft Wind",
+              "ventilation": "Ventilation"
             }
           },
           "swing_mode": {
@@ -289,21 +298,18 @@
               "120": "120°",
               "swing": "Swing"
             }
-          },
-          "fan_mode": {
-            "state": {
-              "silent": "Silent",
-              "soft_wind": "Soft Wind",
-              "standard": "Standard",
-              "strong": "Strong",
-              "storm": "Storm"
-            }
           }
         }
       },
       "cooling_fan": {
         "name": "Thermostat (Cooling Fan)",
         "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "soft_wind": "Soft Wind",
+              "strong": "Strong"
+            }
+          },
           "preset_mode": {
             "state": {
               "blowing": "Blowing",
@@ -321,12 +327,6 @@
               "110": "110°",
               "120": "120°",
               "swing": "Swing"
-            }
-          },
-          "fan_mode": {
-            "state": {
-              "soft_wind": "Soft Wind",
-              "strong": "Strong"
             }
           }
         }
@@ -507,9 +507,6 @@
       }
     },
     "number": {
-      "dry_set_min": {
-        "name": "Dry Duration"
-      },
       "air_set_hour": {
         "name": "Keep Duration"
       },
@@ -533,6 +530,9 @@
       },
       "detergent": {
         "name": "Detergent"
+      },
+      "dry_set_min": {
+        "name": "Dry Duration"
       },
       "honey_temperature": {
         "name": "Honey Water Temperature"
@@ -611,6 +611,31 @@
       }
     },
     "select": {
+      "additional_func": {
+        "name": "Additional Function",
+        "state": {
+          "+漂洗1次": "+Rinse x1",
+          "+漂洗2次": "+Rinse x2",
+          "door_open_dry": "Door Open Dry",
+          "extra_rinse_1": "+Rinse x1",
+          "extra_rinse_2": "+Rinse x2",
+          "half_load": "Half Load",
+          "half_rinse_1": "Half Load+Rinse x1",
+          "half_rinse_2": "Half Load+Rinse x2",
+          "off": "Off",
+          "speed_up": "Speed Up",
+          "steam": "Steam Wash",
+          "strong_wash_func": "Strong Wash",
+          "加强洗涤": "Strong Wash",
+          "加速省时": "Speed Up",
+          "少量餐具": "Half Load",
+          "少量餐具+漂洗1次": "Half+Rinse x1",
+          "少量餐具+漂洗2次": "Half+Rinse x2",
+          "开门速干": "Door Open Dry",
+          "无": "Off",
+          "蒸汽强洗": "Steam Wash"
+        }
+      },
       "autoclean_remind_cycle": {
         "name": "Auto Clean Reminder Cycle",
         "state": {
@@ -1194,6 +1219,14 @@
           "300": "5min"
         }
       },
+      "operation": {
+        "name": "Operation",
+        "state": {
+          "cancel": "Cancel",
+          "pause": "Pause",
+          "resume": "Resume"
+        }
+      },
       "order_mode": {
         "name": "Appointment Mode",
         "state": {
@@ -1478,14 +1511,7 @@
         }
       },
       "rinse_aid": {
-        "name": "Rinse Aid Level",
-        "state": {
-          "1": "Level 1",
-          "2": "Level 2",
-          "3": "Level 3",
-          "4": "Level 4",
-          "5": "Level 5"
-        }
+        "name": "Rinse Aid"
       },
       "rinse_volume": {
         "name": "Rinse Volume",
@@ -1559,15 +1585,7 @@
         }
       },
       "softwater": {
-        "name": "Softwater Level",
-        "state": {
-          "1": "Level 1",
-          "2": "Level 2",
-          "3": "Level 3",
-          "4": "Level 4",
-          "5": "Level 5",
-          "6": "Level 6"
-        }
+        "name": "Water Softener"
       },
       "stains": {
         "name": "Stain Type",
@@ -1650,6 +1668,7 @@
         "name": "Wash Mode",
         "state": {
           "auto_wash": "Auto Wash",
+          "cloud_wash": "Cloud Wash",
           "diy": "DIY Program",
           "dry": "Dry Only",
           "eco_wash": "Eco Wash",
@@ -1666,9 +1685,8 @@
           "soak_wash": "Soak Wash",
           "standard_wash": "Standard Wash",
           "strong_wash": "Strong Wash",
-          "wash_dry": "Wash & Dry",
-          "cloud_wash": "Cloud Wash",
-          "wahin_wash_dry": "Wahin Wash & Dry"
+          "wahin_wash_dry": "Wahin Wash & Dry",
+          "wash_dry": "Wash & Dry"
         }
       },
       "water_gear": {
@@ -1685,10 +1703,10 @@
       "water_level": {
         "name": "Water Level",
         "state": {
-          "auto": "Auto",
           "1": "Level 1",
           "2": "Level 2",
           "3": "Level 3",
+          "auto": "Auto",
           "l1": "L1",
           "l2": "L2",
           "l3": "L3",
@@ -1853,45 +1871,6 @@
           "resume": "Resume"
         }
       },
-      "operation": {
-        "name": "Operation",
-        "state": {
-          "cancel": "Cancel",
-          "pause": "Pause",
-          "resume": "Resume"
-        }
-      },
-      "softwater": {
-        "name": "Water Softener"
-      },
-      "rinse_aid": {
-        "name": "Rinse Aid"
-      },
-      "additional_func": {
-        "name": "Additional Function",
-        "state": {
-          "off": "Off",
-          "half_load": "Half Load",
-          "extra_rinse_1": "+Rinse x1",
-          "extra_rinse_2": "+Rinse x2",
-          "strong_wash_func": "Strong Wash",
-          "half_rinse_1": "Half Load+Rinse x1",
-          "half_rinse_2": "Half Load+Rinse x2",
-          "door_open_dry": "Door Open Dry",
-          "steam": "Steam Wash",
-          "speed_up": "Speed Up",
-          "无": "Off",
-          "少量餐具": "Half Load",
-          "+漂洗1次": "+Rinse x1",
-          "+漂洗2次": "+Rinse x2",
-          "加强洗涤": "Strong Wash",
-          "少量餐具+漂洗1次": "Half+Rinse x1",
-          "少量餐具+漂洗2次": "Half+Rinse x2",
-          "开门速干": "Door Open Dry",
-          "蒸汽强洗": "Steam Wash",
-          "加速省时": "Speed Up"
-        }
-      },
       "work_time": {
         "name": "UV Sterilization Time"
       }
@@ -1902,9 +1881,6 @@
       },
       "air_left_hour": {
         "name": "Keep Remaining Time"
-      },
-      "order_left_time": {
-        "name": "Order Remaining Time"
       },
       "appointment_time": {
         "name": "Appointment Time"
@@ -2093,6 +2069,18 @@
       "dehydration_time_value": {
         "name": "Dehydration Time"
       },
+      "device_status": {
+        "name": "Device Status",
+        "state": {
+          "dry": "Drying",
+          "error": "Error",
+          "keep": "Keeping",
+          "order": "Ordered",
+          "power_off": "Powered Off",
+          "standby": "Standby",
+          "work": "Running"
+        }
+      },
       "dry_time": {
         "name": "Dry Time"
       },
@@ -2192,6 +2180,9 @@
       "night_light_brightness": {
         "name": "Night Light Brightness"
       },
+      "order_left_time": {
+        "name": "Order Remaining Time"
+      },
       "order_time": {
         "name": "Order Remaining Time"
       },
@@ -2254,6 +2245,12 @@
       "set_time": {
         "name": "Set Time"
       },
+      "smelly_level": {
+        "name": "Smelly Level"
+      },
+      "smelly_threshold": {
+        "name": "Smelly Threshold"
+      },
       "storage_temperature": {
         "name": "Refrigerator Set Temperature"
       },
@@ -2284,16 +2281,12 @@
       "warming_time": {
         "name": "Warming Time"
       },
-      "device_status": {
-        "name": "Device Status",
+      "wash_region": {
+        "name": "Wash Region",
         "state": {
-          "power_off": "Powered Off",
-          "standby": "Standby",
-          "order": "Ordered",
-          "work": "Running",
-          "error": "Error",
-          "keep": "Keeping",
-          "dry": "Drying"
+          "all": "All",
+          "lower": "Lower",
+          "upper": "Upper"
         }
       },
       "wash_stage": {
@@ -2325,6 +2318,14 @@
       "water_gage_bar": {
         "name": "Water Pressure"
       },
+      "water_strong": {
+        "name": "Wash Strength",
+        "state": {
+          "1": "Level 1",
+          "2": "Level 2",
+          "auto": "Auto"
+        }
+      },
       "water_volume": {
         "name": "Outlet Water Flow Rate"
       },
@@ -2339,28 +2340,6 @@
       },
       "work_time": {
         "name": "Work Time"
-      },
-      "smelly_threshold": {
-        "name": "Smelly Threshold"
-      },
-      "wash_region": {
-        "name": "Wash Region",
-        "state": {
-          "all": "All",
-          "upper": "Upper",
-          "lower": "Lower"
-        }
-      },
-      "water_strong": {
-        "name": "Wash Strength",
-        "state": {
-          "auto": "Auto",
-          "1": "Level 1",
-          "2": "Level 2"
-        }
-      },
-      "smelly_level": {
-        "name": "Smelly Level"
       }
     },
     "switch": {
@@ -2556,6 +2535,12 @@
       "microbubble": {
         "name": "Microbubble Soak"
       },
+      "more_dry": {
+        "name": "More Dry"
+      },
+      "more_dry_wash": {
+        "name": "More Dry Wash"
+      },
       "move_clean": {
         "name": "Move Clean"
       },
@@ -2622,6 +2607,9 @@
       "smart_sterilize": {
         "name": "Smart Sterilization"
       },
+      "smelly_enable": {
+        "name": "Smelly Enable"
+      },
       "steam": {
         "name": "Steam"
       },
@@ -2655,14 +2643,14 @@
       "uvswitch": {
         "name": "UV Sterilization"
       },
+      "wash": {
+        "name": "Wash"
+      },
       "wash_dry": {
         "name": "Dry After Wash"
       },
       "wash_keep": {
         "name": "Keep After Wash"
-      },
-      "wash": {
-        "name": "Wash"
       },
       "water_box": {
         "name": "Water Box"
@@ -2681,15 +2669,6 @@
       },
       "wind_swing_ud": {
         "name": "Vertical Swing"
-      },
-      "more_dry": {
-        "name": "More Dry"
-      },
-      "more_dry_wash": {
-        "name": "More Dry Wash"
-      },
-      "smelly_enable": {
-        "name": "Smelly Enable"
       }
     },
     "text": {

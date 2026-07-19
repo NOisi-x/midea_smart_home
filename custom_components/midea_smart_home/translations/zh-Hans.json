@@ -164,6 +164,9 @@
       "screen_status": {
         "name": "屏幕状态"
       },
+      "smelly_trigger": {
+        "name": "异味触发状态"
+      },
       "softener_lack": {
         "name": "柔顺剂状态"
       },
@@ -181,9 +184,6 @@
       },
       "water_output_switch": {
         "name": "龙头出水"
-      },
-      "smelly_trigger": {
-        "name": "异味触发状态"
       }
     },
     "button": {
@@ -202,9 +202,11 @@
       "pause": {
         "name": "暂停/继续"
       },
-
       "right_stove_off": {
         "name": "关闭右灶"
+      },
+      "start": {
+        "name": "启动"
       },
       "start_dry": {
         "name": "单烘干启动"
@@ -216,9 +218,6 @@
         "name": "预约启动"
       },
       "start_wash": {
-        "name": "启动"
-      },
-      "start": {
         "name": "启动"
       },
       "stop": {
@@ -268,6 +267,15 @@
       "bath_heater": {
         "name": "温控器(浴霸)",
         "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "silent": "静音",
+              "soft_wind": "柔风",
+              "standard": "标准",
+              "storm": "暴风",
+              "strong": "强劲"
+            }
+          },
           "preset_mode": {
             "state": {
               "bath": "沐浴",
@@ -275,8 +283,8 @@
               "close": "关闭",
               "drying": "干燥",
               "heating": "取暖",
-              "ventilation": "换气",
-              "soft_wind": "柔风感"
+              "soft_wind": "柔风感",
+              "ventilation": "换气"
             }
           },
           "swing_mode": {
@@ -290,21 +298,18 @@
               "120": "120°",
               "swing": "摆动"
             }
-          },
-          "fan_mode": {
-            "state": {
-              "silent": "静音",
-              "soft_wind": "柔风",
-              "standard": "标准",
-              "strong": "强劲",
-              "storm": "暴风"
-            }
           }
         }
       },
       "cooling_fan": {
         "name": "温控器(凉霸)",
         "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "soft_wind": "弱风",
+              "strong": "强风"
+            }
+          },
           "preset_mode": {
             "state": {
               "blowing": "吹风",
@@ -322,12 +327,6 @@
               "110": "110°",
               "120": "120°",
               "swing": "摆动"
-            }
-          },
-          "fan_mode": {
-            "state": {
-              "soft_wind": "弱风",
-              "strong": "强风"
             }
           }
         }
@@ -511,10 +510,6 @@
       "air_set_hour": {
         "name": "设置保管时间"
       },
-      "dry_set_min": {
-        "name": "设置烘干时间"
-      },
-
       "boiling_water_temperature": {
         "name": "沸水设定温度"
       },
@@ -535,6 +530,9 @@
       },
       "detergent": {
         "name": "洗衣液"
+      },
+      "dry_set_min": {
+        "name": "设置烘干时间"
       },
       "honey_temperature": {
         "name": "蜂蜜水设定温度"
@@ -613,6 +611,31 @@
       }
     },
     "select": {
+      "additional_func": {
+        "name": "附加功能",
+        "state": {
+          "+漂洗1次": "+漂洗1次",
+          "+漂洗2次": "+漂洗2次",
+          "door_open_dry": "开门速干",
+          "extra_rinse_1": "+漂洗1次",
+          "extra_rinse_2": "+漂洗2次",
+          "half_load": "少量餐具",
+          "half_rinse_1": "少量餐具+漂洗1次",
+          "half_rinse_2": "少量餐具+漂洗2次",
+          "off": "无",
+          "speed_up": "加速省时",
+          "steam": "蒸汽强洗",
+          "strong_wash_func": "加强洗涤",
+          "加强洗涤": "加强洗涤",
+          "加速省时": "加速省时",
+          "少量餐具": "少量餐具",
+          "少量餐具+漂洗1次": "少量餐具+漂洗1次",
+          "少量餐具+漂洗2次": "少量餐具+漂洗2次",
+          "开门速干": "开门速干",
+          "无": "无",
+          "蒸汽强洗": "蒸汽强洗"
+        }
+      },
       "autoclean_remind_cycle": {
         "name": "自清洗提醒周期",
         "state": {
@@ -1196,6 +1219,14 @@
           "300": "5分钟"
         }
       },
+      "operation": {
+        "name": "操作",
+        "state": {
+          "cancel": "取消",
+          "pause": "暂停",
+          "resume": "继续"
+        }
+      },
       "order_mode": {
         "name": "预约模式",
         "state": {
@@ -1480,14 +1511,7 @@
         }
       },
       "rinse_aid": {
-        "name": "漂洗剂挡位",
-        "state": {
-          "1": "1档",
-          "2": "2档",
-          "3": "3档",
-          "4": "4档",
-          "5": "5档"
-        }
+        "name": "亮碟剂档位"
       },
       "rinse_volume": {
         "name": "冲水模式",
@@ -1561,15 +1585,7 @@
         }
       },
       "softwater": {
-        "name": "软水剂挡位",
-        "state": {
-          "1": "1档",
-          "2": "2档",
-          "3": "3档",
-          "4": "4档",
-          "5": "5档",
-          "6": "6档"
-        }
+        "name": "软水盐档位"
       },
       "stains": {
         "name": "特渍类型",
@@ -1652,6 +1668,7 @@
         "name": "洗涤模式",
         "state": {
           "auto_wash": "智能洗",
+          "cloud_wash": "云洗涤",
           "diy": "DIY程序",
           "dry": "单烘干启动",
           "eco_wash": "节能洗",
@@ -1668,9 +1685,8 @@
           "soak_wash": "预冲洗",
           "standard_wash": "标准洗",
           "strong_wash": "超强洗",
-          "wash_dry": "洗烘一体",
-          "cloud_wash": "云洗涤",
-          "wahin_wash_dry": "华凌洗烘"
+          "wahin_wash_dry": "华凌洗烘",
+          "wash_dry": "洗烘一体"
         }
       },
       "water_gear": {
@@ -1687,10 +1703,10 @@
       "water_level": {
         "name": "水位",
         "state": {
-          "auto": "自动",
           "1": "1档",
           "2": "2档",
           "3": "3档",
+          "auto": "自动",
           "l1": "L1",
           "l2": "L2",
           "l3": "L3",
@@ -1855,45 +1871,6 @@
           "resume": "继续"
         }
       },
-      "operation": {
-        "name": "操作",
-        "state": {
-          "cancel": "取消",
-          "pause": "暂停",
-          "resume": "继续"
-        }
-      },
-      "softwater": {
-        "name": "软水盐档位"
-      },
-      "rinse_aid": {
-        "name": "亮碟剂档位"
-      },
-      "additional_func": {
-        "name": "附加功能",
-        "state": {
-          "off": "无",
-          "half_load": "少量餐具",
-          "extra_rinse_1": "+漂洗1次",
-          "extra_rinse_2": "+漂洗2次",
-          "strong_wash_func": "加强洗涤",
-          "half_rinse_1": "少量餐具+漂洗1次",
-          "half_rinse_2": "少量餐具+漂洗2次",
-          "door_open_dry": "开门速干",
-          "steam": "蒸汽强洗",
-          "speed_up": "加速省时",
-          "无": "无",
-          "少量餐具": "少量餐具",
-          "+漂洗1次": "+漂洗1次",
-          "+漂洗2次": "+漂洗2次",
-          "加强洗涤": "加强洗涤",
-          "少量餐具+漂洗1次": "少量餐具+漂洗1次",
-          "少量餐具+漂洗2次": "少量餐具+漂洗2次",
-          "开门速干": "开门速干",
-          "蒸汽强洗": "蒸汽强洗",
-          "加速省时": "加速省时"
-        }
-      },
       "work_time": {
         "name": "消毒时间"
       }
@@ -1904,9 +1881,6 @@
       },
       "air_left_hour": {
         "name": "抑菌储存剩余时间"
-      },
-      "order_left_time": {
-        "name": "预约剩余时间"
       },
       "appointment_time": {
         "name": "预约时间"
@@ -2095,6 +2069,18 @@
       "dehydration_time_value": {
         "name": "脱水时间"
       },
+      "device_status": {
+        "name": "设备状态",
+        "state": {
+          "dry": "烘干中",
+          "error": "故障中",
+          "keep": "保管中",
+          "order": "预约中",
+          "power_off": "已关机",
+          "standby": "待机中",
+          "work": "运行中"
+        }
+      },
       "dry_time": {
         "name": "烘干时间"
       },
@@ -2194,6 +2180,9 @@
       "night_light_brightness": {
         "name": "夜灯亮度"
       },
+      "order_left_time": {
+        "name": "预约剩余时间"
+      },
       "order_time": {
         "name": "预约剩余时间"
       },
@@ -2256,6 +2245,12 @@
       "set_time": {
         "name": "设定时间"
       },
+      "smelly_level": {
+        "name": "异味水平"
+      },
+      "smelly_threshold": {
+        "name": "异味触发阈值"
+      },
       "storage_temperature": {
         "name": "冷藏设定温度"
       },
@@ -2286,16 +2281,12 @@
       "warming_time": {
         "name": "保温时间"
       },
-      "device_status": {
-        "name": "设备状态",
+      "wash_region": {
+        "name": "分层洗涤",
         "state": {
-          "power_off": "已关机",
-          "standby": "待机中",
-          "order": "预约中",
-          "work": "运行中",
-          "error": "故障中",
-          "keep": "保管中",
-          "dry": "烘干中"
+          "all": "全腔",
+          "lower": "下层",
+          "upper": "上层"
         }
       },
       "wash_stage": {
@@ -2327,6 +2318,14 @@
       "water_gage_bar": {
         "name": "水压"
       },
+      "water_strong": {
+        "name": "强度",
+        "state": {
+          "1": "1档",
+          "2": "2档",
+          "auto": "自动"
+        }
+      },
       "water_volume": {
         "name": "出水流量"
       },
@@ -2336,33 +2335,11 @@
       "work_mode": {
         "name": "工作模式"
       },
-      "wash_region": {
-        "name": "分层洗涤",
-        "state": {
-          "all": "全腔",
-          "upper": "上层",
-          "lower": "下层"
-        }
-      },
-      "water_strong": {
-        "name": "强度",
-        "state": {
-          "auto": "自动",
-          "1": "1档",
-          "2": "2档"
-        }
-      },
       "work_status": {
         "name": "工作状态"
       },
       "work_time": {
         "name": "工作时间"
-      },
-      "smelly_level": {
-        "name": "异味水平"
-      },
-      "smelly_threshold": {
-        "name": "异味触发阈值"
       }
     },
     "switch": {
@@ -2558,6 +2535,12 @@
       "microbubble": {
         "name": "超微净泡"
       },
+      "more_dry": {
+        "name": "强烘闪干"
+      },
+      "more_dry_wash": {
+        "name": "加强洗涤"
+      },
       "move_clean": {
         "name": "移动清洗"
       },
@@ -2624,6 +2607,9 @@
       "smart_sterilize": {
         "name": "智能杀菌"
       },
+      "smelly_enable": {
+        "name": "异味感应"
+      },
       "steam": {
         "name": "蒸汽"
       },
@@ -2657,14 +2643,14 @@
       "uvswitch": {
         "name": "UV杀菌"
       },
+      "wash": {
+        "name": "滤芯冲洗"
+      },
       "wash_dry": {
         "name": "热风烘干"
       },
       "wash_keep": {
         "name": "抑菌储存"
-      },
-      "wash": {
-        "name": "滤芯冲洗"
       },
       "water_box": {
         "name": "水箱"
@@ -2683,15 +2669,6 @@
       },
       "wind_swing_ud": {
         "name": "上下摆风"
-      },
-      "more_dry": {
-        "name": "强烘闪干"
-      },
-      "more_dry_wash": {
-        "name": "加强洗涤"
-      },
-      "smelly_enable": {
-        "name": "异味感应"
       }
     },
     "text": {
