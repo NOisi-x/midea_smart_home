@@ -193,4 +193,3 @@ class MideaButtonEntity(MideaBaseEntity, ButtonEntity):
             )
 
         return {}
-

@@ -109,7 +109,6 @@ def get_device_mapping(device_type: int, model: str = "", sn8: str = "", categor
 
     return result
 
-
 async def load_device_config(hass, hass_config_dir: str, device_type: int, sn8: str) -> dict | None:
     """Load per-device configuration from local storage.
 
@@ -142,7 +141,6 @@ async def load_device_config(hass, hass_config_dir: str, device_type: int, sn8: 
     except (json.JSONDecodeError, OSError) as e:
         _LOGGER.warning("Failed to load device config %s: %s", config_path, e)
         return None
-
 
 async def load_diff_config(hass, hass_config_dir: str, device_type: int) -> dict | None:
     """Load per-device-type diff config from local storage.
@@ -193,7 +191,6 @@ async def load_diff_config(hass, hass_config_dir: str, device_type: int) -> dict
 
     return None
 
-
 # Per-device-type feature maps for cloud config per-mode analysis.
 # Each key is a device_type (e.g., 0xE1). The value maps cloud config
 # feature keys to (platform, entity_id) tuples used in entity filtering.
@@ -213,7 +210,6 @@ DEVICE_CONFIG_FEATURE_MAPS: dict[int, dict[str, tuple[str, str]]] = {
         "moreDryWash":      ("switch", "more_dry_wash"),
     },
 }
-
 
 def apply_device_config(
     mapping: dict,

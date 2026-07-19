@@ -724,7 +724,6 @@ async def download_diff_config(
 
     return None
 
-
 async def download_device_config(
     access_token: str,
     sn8: str,

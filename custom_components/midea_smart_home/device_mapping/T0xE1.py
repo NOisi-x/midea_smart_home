@@ -32,7 +32,6 @@ _WORK_STATUS_NUM: dict[str, int] = {
     "pipeInspect": 10,
 }
 
-
 def get_status_num(
     work_status: Optional[str],
     airswitch: Any = 0,
@@ -81,7 +80,6 @@ def get_status_num(
         num = 1
 
     return num
-
 
 def calc_condition_result(
     mode_name: str,
@@ -157,7 +155,6 @@ def calc_condition_result(
 
     # Fallback to default
     return dict(conditions.get("default", {}))
-
 
 def build_start_command(
     data: dict,
@@ -255,7 +252,6 @@ def build_start_command(
 
     return {}
 
-
 def validate_additional(
     option_key: str,
     options_map: dict,
@@ -286,7 +282,6 @@ def validate_additional(
     except (ValueError, TypeError):
         pass
 
-
 def validate_keep_dry(
     action: str,
     data: dict,
@@ -312,7 +307,6 @@ def validate_keep_dry(
         except (ValueError, TypeError):
             pass
 
-
 def validate_keep_on(
     data: dict,
     keep_start_now: bool,
@@ -328,7 +322,6 @@ def validate_keep_on(
             raise HomeAssistantError("请先设置保管时长")
     except (ValueError, TypeError):
         pass
-
 
 def validate_can_operate(
     action: str,
@@ -375,7 +368,6 @@ def validate_can_operate(
         if data.get("water_lack") and mode not in ("germ", "keep", "dry"):
             raise HomeAssistantError("缺水中，请检查进水")
 
-
 def build_cancel_command(data: dict, status_num: int) -> dict:
     """Build cancel command matching mini-program operator.js cancel().
 
@@ -394,7 +386,6 @@ def build_cancel_command(data: dict, status_num: int) -> dict:
     if status_num == 6:
         return {"dryswitch": 0}
     return {}
-
 
 async def dispatch_validator(
     validator_name: str,
@@ -447,7 +438,6 @@ async def dispatch_validator(
     elif validator_name == "additional":
         validate_additional(option or "", options_map or {}, data, diff_flags)
 
-
 def build_pause_command(data: dict, status_num: int) -> dict:
     """Build pause/restart command matching mini-program operator.js pause().
 
@@ -461,7 +451,6 @@ def build_pause_command(data: dict, status_num: int) -> dict:
     if data.get("operator") == "start":
         return {"operator": "pause"}
     return {"operator": "start"}
-
 
 def build_order_command(
     data: dict,
@@ -549,7 +538,6 @@ def build_order_command(
 
     return cmd
 
-
 # ---- E1 status text mapping (mirrors mini-program STATUS_NAME / pannel.wxml) ----
 
 _STATUS_TEXT: dict[int, str] = {
@@ -565,7 +553,6 @@ _STATUS_TEXT: dict[int, str] = {
      6: "烘干中",
     10: "待机中",
 }
-
 
 def get_status_text(
     status_num: int,
@@ -594,7 +581,6 @@ def get_status_text(
         name = dry_name or "烘干"
         return f"{name}中"
     return _STATUS_TEXT.get(status_num, _STATUS_TEXT[-3])
-
 
 DEVICE_MAPPING = {
     "default": {
@@ -680,7 +666,6 @@ DEVICE_MAPPING = {
                     "unit_of_measurement": UnitOfTime.HOURS,
                     "side_effect": {"type": "keep_auto_enable"}
                 },
-
 
                 "dry_set_min": {
                     "min": 0,
